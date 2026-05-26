@@ -94,11 +94,50 @@ def export_to_onnx_fp32(model, tokenizer):
     logger.info(f"FP32 model saved to {output_path}")
 
 def export_to_onnx_fp16(model, tokenizer):
-    """Export model to ONNX in FP16 format."""
-    logger.info("Skipping FP16 export - LayerNorm not supported for Half on CPU")
-    logger.info("FP16 will be simulated by quantizing FP32 model to FP16 weights")
-    # Skip FP16 export - LayerNorm doesn't support Half on CPU
-    # We'll use FP32 and INT8 for comparisons
+    """Export model to ONNX in FP16 format by converting FP32 weights."""
+    logger.info("Exporting to ONNX FP16 by converting FP32 weights...")
+    
+    output_path = OUTPUT_DIR / "gpt2-fp16"
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    # First ensure FP32 model exists
+    fp32_path = OUTPUT_DIR / "gpt2-fp32"
+    if not fp32_path.exists():
+        export_to_onnx_fp32(model, tokenizer)
+    
+    # Use onnx to convert FP32 to FP16
+    try:
+        import onnx
+        from onnxconverter_common import float16
+        
+        onnx_model_path = fp32_path / "model.onnx"
+        fp16_model_path = output_path / "model.onnx"
+        
+        # Load FP32 model
+        model_fp32 = onnx.load(onnx_model_path)
+        
+        # Convert to FP16
+        model_fp16 = float16.convert_float_to_float16(model_fp32)
+        
+        # Save FP16 model
+        onnx.save(model_fp16, fp16_model_path)
+        
+        tokenizer.save_pretrained(output_path)
+        logger.info(f"FP16 model saved to {output_path}")
+        
+    except ImportError:
+        logger.warning("onnxconverter-common not available, trying manual conversion")
+        # Fallback: try using onnxruntime tools
+        try:
+            from onnxruntime.tools import convert_float_to_float16
+            convert_float_to_float16(str(onnx_model_path), str(fp16_model_path))
+            tokenizer.save_pretrained(output_path)
+            logger.info(f"FP16 model saved to {output_path}")
+        except ImportError:
+            logger.warning("FP16 conversion tools not available, skipping")
+    except Exception as e:
+        logger.warning(f"FP16 export failed: {e}")
+        logger.info("Skipping FP16 export")
 
 def export_to_onnx_int8(model, tokenizer):
     """Export model to ONNX with INT8 quantization."""
