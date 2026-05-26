@@ -51,17 +51,38 @@ class BenchmarkRunner:
         if hardware == 'cpu':
             return True
         
+        try:
+            available_providers = ort.get_available_providers()
+            logger.info(f"Available ONNX Runtime providers: {available_providers}")
+        except Exception as e:
+            logger.error(f"Error getting available providers: {e}")
+            available_providers = []
+        
         if hardware == 'gpu':
+            # Check for CUDA provider
+            if 'CUDAExecutionProvider' in available_providers:
+                return True
+            # Also try to use it even if not listed
             try:
-                available_providers = ort.get_available_providers()
-                return 'CUDAExecutionProvider' in available_providers
+                test_session = ort.InferenceSession(
+                    str(self.models_dir / "gpt2-fp32" / "model.onnx"),
+                    providers=['CUDAExecutionProvider']
+                )
+                return True
             except:
                 return False
         
         if hardware == 'npu':
+            # Check for DirectML provider
+            if 'DmlExecutionProvider' in available_providers:
+                return True
+            # Also try to use it even if not listed
             try:
-                available_providers = ort.get_available_providers()
-                return 'DmlExecutionProvider' in available_providers
+                test_session = ort.InferenceSession(
+                    str(self.models_dir / "gpt2-fp32" / "model.onnx"),
+                    providers=['DmlExecutionProvider']
+                )
+                return True
             except:
                 return False
         
