@@ -106,10 +106,7 @@ def create_comparison_chart(df, precision, metric, title_suffix):
 
 def main():
     """Main dashboard application."""
-    st.title("🚀 NPU LLM Benchmark Dashboard")
-    
-    # Sidebar for model selection
-    st.sidebar.header("🔍 Model Selection")
+    st.title("🚀 LLM Benchmark Dashboard")
     
     # Model information dictionary
     model_info = {
@@ -117,18 +114,6 @@ def main():
         'gpt2-fp16': {'name': 'GPT-2 (Small)', 'params': '117M', 'size': '548MB', 'precision': 'FP16'},
         'gpt2-int8': {'name': 'GPT-2 (Small)', 'params': '117M', 'size': '548MB', 'precision': 'INT8'},
     }
-    
-    # Available models for reference
-    st.sidebar.subheader("Available GPT-2 Models")
-    st.sidebar.markdown("""
-    | Model | Parameters | Size |
-    |-------|-----------|------|
-    | GPT-2 (Small) | 117M | 548MB |
-    | GPT-2 Medium | 345M | 1.4GB |
-    | GPT-2 Large | 774M | 3.25GB |
-    
-    *Note: GPT-2 Large exceeds 2GB protobuf limit for ONNX export*
-    """)
     
     # Load data
     df = load_data()
@@ -141,50 +126,115 @@ def main():
     # Get available models from data
     available_models = df['model'].unique()
     
-    # Model selection dropdown
-    selected_model = st.sidebar.selectbox(
-        "Select Model Variant",
-        options=['All Models'] + list(available_models),
-        index=0
-    )
+    # Create tabs for model selection
+    tab_labels = ['GPT-2 Small'] + [f'Other Model {i+1}' for i in range(len(available_models)-1)]
+    tabs = st.tabs(tab_labels)
     
-    st.markdown("---")
-    
-    # Model Information Section (dynamic based on selection)
-    if selected_model != 'All Models':
-        st.header(f"🤖 Model Information: {selected_model}")
+    # For now, use the first tab for GPT-2 Small (our current model)
+    with tabs[0]:
+        # Model Details Section
+        st.header("Model Details")
+        col1, col2, col3 = st.columns(3)
         
-        if selected_model in model_info:
-            info = model_info[selected_model]
+        with col1:
+            st.metric("Name", "GPT-2 (Small)")
+        
+        with col2:
+            st.metric("Parameters", "117M")
+        
+        with col3:
+            st.metric("Model Size", "548MB")
+        
+        st.info("**Precision Variants:** FP32, FP16, INT8")
+        
+        st.markdown("---")
+        
+        # Filter data for GPT-2 models
+        df_filtered = df[df['model'].str.contains('gpt2', case=False, na=False)]
+        
+        if df_filtered.empty:
+            st.warning("No benchmark data found for GPT-2 models.")
+            return
+        
+        # Hardware Comparisons by Precision
+        st.header("Hardware Comparisons by Precision")
+        
+        precisions = ['int8', 'fp16', 'fp32']
+        metrics = ['latency', 'token_generation', 'throughput']
+        
+        # Create tabs for each precision
+        tab1, tab2, tab3 = st.tabs(["INT8 Precision", "FP16 Precision", "FP32 Precision"])
+        
+        with tab1:
+            st.subheader("INT8 Precision Comparisons")
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.metric("Model Name", info['name'])
+                fig_latency = create_comparison_chart(df_filtered, 'int8', 'latency', '')
+                if fig_latency:
+                    st.plotly_chart(fig_latency, use_container_width=True)
             
             with col2:
-                st.metric("Parameters", info['params'])
+                fig_token = create_comparison_chart(df_filtered, 'int8', 'token_generation', '')
+                if fig_token:
+                    st.plotly_chart(fig_token, use_container_width=True)
             
             with col3:
-                st.metric("Model Size", info['size'])
-            
-            st.info(f"**Precision:** {info['precision']}")
-        else:
-            st.info("Model details not available")
+                fig_throughput = create_comparison_chart(df_filtered, 'int8', 'throughput', '')
+                if fig_throughput:
+                    st.plotly_chart(fig_throughput, use_container_width=True)
         
-        st.markdown("---")
-    else:
-        st.header("🤖 Model Information")
-        st.info("Select a specific model variant from the sidebar to view detailed information")
-        st.markdown("---")
+        with tab2:
+            st.subheader("FP16 Precision Comparisons")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                fig_latency = create_comparison_chart(df_filtered, 'fp16', 'latency', '')
+                if fig_latency:
+                    st.plotly_chart(fig_latency, use_container_width=True)
+            
+            with col2:
+                fig_token = create_comparison_chart(df_filtered, 'fp16', 'token_generation', '')
+                if fig_token:
+                    st.plotly_chart(fig_token, use_container_width=True)
+            
+            with col3:
+                fig_throughput = create_comparison_chart(df_filtered, 'fp16', 'throughput', '')
+                if fig_throughput:
+                    st.plotly_chart(fig_throughput, use_container_width=True)
+        
+        with tab3:
+            st.subheader("FP32 Precision Comparisons")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                fig_latency = create_comparison_chart(df_filtered, 'fp32', 'latency', '')
+                if fig_latency:
+                    st.plotly_chart(fig_latency, use_container_width=True)
+            
+            with col2:
+                fig_token = create_comparison_chart(df_filtered, 'fp32', 'token_generation', '')
+                if fig_token:
+                    st.plotly_chart(fig_token, use_container_width=True)
+            
+            with col3:
+                fig_throughput = create_comparison_chart(df_filtered, 'fp32', 'throughput', '')
+                if fig_throughput:
+                    st.plotly_chart(fig_throughput, use_container_width=True)
     
-    # Filter data based on model selection
-    if selected_model != 'All Models':
-        df = df[df['model'] == selected_model]
-    
-    if df.empty:
-        st.warning("No benchmark data found. Please run the benchmark script first.")
-        st.info("Run `python scripts/run_benchmarks.py` on your remote desktop to generate benchmark data.")
-        return
+    # Placeholder tabs for other models
+    for i, tab in enumerate(tabs[1:]):
+        with tab:
+            st.info(f"Model {i+2} - No benchmark data available yet")
+            st.markdown("""
+            | Model | Parameters | Size |
+            |-------|-----------|------|
+            | GPT-2 (Small) | 117M | 548MB ✓ |
+            | GPT-2 Medium | 345M | 1.4GB |
+            | GPT-2 Large | 774M | 3.25GB |
+            
+            *Note: GPT-2 Large exceeds 2GB protobuf limit for ONNX export*
+            """)
     
     # Display summary statistics
     st.header("📊 Summary Statistics")
