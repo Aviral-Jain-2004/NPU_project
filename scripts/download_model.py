@@ -6,9 +6,14 @@ import os
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
-from optimum.onnxruntime import ORTModelForCausalLM
-from optimum.exporters.onnx import OnnxConfig
 import logging
+
+try:
+    from optimum.onnxruntime import ORTModelForCausalLM
+    OPTIMUM_AVAILABLE = True
+except ImportError:
+    OPTIMUM_AVAILABLE = False
+    logging.warning("optimum.onnxruntime not available, will use alternative export method")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,13 +45,39 @@ def export_to_onnx_fp32(model, tokenizer):
     logger.info("Exporting to ONNX FP32...")
     
     output_path = OUTPUT_DIR / "gpt2-large-fp32"
+    output_path.mkdir(parents=True, exist_ok=True)
     
-    ort_model = ORTModelForCausalLM.from_pretrained(
-        MODEL_NAME,
-        export=True,
-        provider="CPUExecutionProvider",
+    if OPTIMUM_AVAILABLE:
+        try:
+            ort_model = ORTModelForCausalLM.from_pretrained(
+                MODEL_NAME,
+                export=True,
+                provider="CPUExecutionProvider",
+            )
+            ort_model.save_pretrained(output_path)
+            tokenizer.save_pretrained(output_path)
+            logger.info(f"FP32 model saved to {output_path}")
+            return
+        except Exception as e:
+            logger.warning(f"Optimum export failed: {e}, falling back to manual export")
+    
+    # Fallback: manual export using torch
+    logger.info("Using manual ONNX export...")
+    dummy_input = tokenizer("Hello world", return_tensors="pt")
+    
+    torch.onnx.export(
+        model,
+        (dummy_input['input_ids'], dummy_input['attention_mask']),
+        output_path / "model.onnx",
+        input_names=['input_ids', 'attention_mask'],
+        output_names=['logits'],
+        dynamic_axes={
+            'input_ids': {0: 'batch_size', 1: 'sequence_length'},
+            'attention_mask': {0: 'batch_size', 1: 'sequence_length'},
+            'logits': {0: 'batch_size', 1: 'sequence_length'}
+        },
+        opset_version=14
     )
-    ort_model.save_pretrained(output_path)
     
     tokenizer.save_pretrained(output_path)
     logger.info(f"FP32 model saved to {output_path}")
@@ -56,14 +87,41 @@ def export_to_onnx_fp16(model, tokenizer):
     logger.info("Exporting to ONNX FP16...")
     
     output_path = OUTPUT_DIR / "gpt2-large-fp16"
+    output_path.mkdir(parents=True, exist_ok=True)
     
-    ort_model = ORTModelForCausalLM.from_pretrained(
-        MODEL_NAME,
-        export=True,
-        provider="CPUExecutionProvider",
-        float16=True,
+    if OPTIMUM_AVAILABLE:
+        try:
+            ort_model = ORTModelForCausalLM.from_pretrained(
+                MODEL_NAME,
+                export=True,
+                provider="CPUExecutionProvider",
+                float16=True,
+            )
+            ort_model.save_pretrained(output_path)
+            tokenizer.save_pretrained(output_path)
+            logger.info(f"FP16 model saved to {output_path}")
+            return
+        except Exception as e:
+            logger.warning(f"Optimum export failed: {e}, falling back to manual export")
+    
+    # Fallback: convert model to FP16 then export
+    logger.info("Using manual ONNX export with FP16...")
+    model_fp16 = model.half()
+    dummy_input = tokenizer("Hello world", return_tensors="pt")
+    
+    torch.onnx.export(
+        model_fp16,
+        (dummy_input['input_ids'], dummy_input['attention_mask']),
+        output_path / "model.onnx",
+        input_names=['input_ids', 'attention_mask'],
+        output_names=['logits'],
+        dynamic_axes={
+            'input_ids': {0: 'batch_size', 1: 'sequence_length'},
+            'attention_mask': {0: 'batch_size', 1: 'sequence_length'},
+            'logits': {0: 'batch_size', 1: 'sequence_length'}
+        },
+        opset_version=14
     )
-    ort_model.save_pretrained(output_path)
     
     tokenizer.save_pretrained(output_path)
     logger.info(f"FP16 model saved to {output_path}")
@@ -73,33 +131,39 @@ def export_to_onnx_int8(model, tokenizer):
     logger.info("Exporting to ONNX INT8...")
     
     output_path = OUTPUT_DIR / "gpt2-large-int8"
+    output_path.mkdir(parents=True, exist_ok=True)
     
-    # First export to ONNX
-    ort_model = ORTModelForCausalLM.from_pretrained(
-        MODEL_NAME,
-        export=True,
-        provider="CPUExecutionProvider",
-    )
+    # First export FP32 model
+    fp32_path = OUTPUT_DIR / "gpt2-large-fp32"
+    if not fp32_path.exists():
+        export_to_onnx_fp32(model, tokenizer)
     
-    # Apply dynamic quantization
-    from optimum.onnxruntime.configuration import QuantizationConfig
-    from optimum.onnxruntime import ORTQuantizer
-    
-    quantization_config = QuantizationConfig(
-        is_static=False,
-        format="int8",
-        per_channel=False,
-        reduce_range=False,
-    )
-    
-    quantizer = ORTQuantizer.from_pretrained(ort_model)
-    quantizer.quantize(
-        save_dir=output_path,
-        quantization_config=quantization_config,
-    )
-    
-    tokenizer.save_pretrained(output_path)
-    logger.info(f"INT8 model saved to {output_path}")
+    # Use onnxruntime for quantization
+    try:
+        import onnx
+        from onnxruntime.quantization import quantize_dynamic, QuantType
+        
+        onnx_model_path = fp32_path / "model.onnx"
+        quantized_model_path = output_path / "model.onnx"
+        
+        quantize_dynamic(
+            onnx_model_path,
+            quantized_model_path,
+            weight_type=QuantType.QUInt8,
+            optimize_model=True,
+            per_channel=False,
+            reduce_range=False
+        )
+        
+        tokenizer.save_pretrained(output_path)
+        logger.info(f"INT8 model saved to {output_path}")
+        
+    except ImportError:
+        logger.warning("onnxruntime quantization not available")
+        logger.info("Skipping INT8 export - you can manually quantize using onnxruntime tools")
+    except Exception as e:
+        logger.warning(f"INT8 export failed: {e}")
+        logger.info("You may need to manually quantize the model using onnxruntime tools")
 
 def main():
     """Main function to download and convert models."""
@@ -115,11 +179,7 @@ def main():
     export_to_onnx_fp16(model, tokenizer)
     
     # INT8 quantization
-    try:
-        export_to_onnx_int8(model, tokenizer)
-    except Exception as e:
-        logger.warning(f"INT8 export failed: {e}")
-        logger.info("You may need to manually quantize the model using optimum-cli")
+    export_to_onnx_int8(model, tokenizer)
     
     logger.info("Model download and conversion complete!")
 
