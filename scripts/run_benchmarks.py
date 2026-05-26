@@ -37,10 +37,10 @@ def main():
     
     # Define benchmark configurations
     # Model names should match the directories created by download_model.py
+    # Note: FP16 skipped due to LayerNorm Half limitation on CPU
     model_configs = [
-        ("gpt2-large-fp32", "fp32"),
-        ("gpt2-large-fp16", "fp16"),
-        ("gpt2-large-int8", "int8"),
+        ("gpt2-fp32", "fp32"),
+        ("gpt2-int8", "int8"),
     ]
     
     # Hardware to test
