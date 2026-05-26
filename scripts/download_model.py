@@ -65,12 +65,19 @@ def export_to_onnx_fp32(model, tokenizer):
     logger.info("Using manual ONNX export...")
     dummy_input = tokenizer("Hello world", return_tensors="pt")
     
-    # Wrapper function to handle model forward with proper arguments
-    def model_wrapper(input_ids, attention_mask):
-        return model(input_ids=input_ids, attention_mask=attention_mask, past_key_values=None)
+    # Wrapper module to handle model forward with proper arguments
+    class GPT2Wrapper(torch.nn.Module):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
+        
+        def forward(self, input_ids, attention_mask):
+            return self.model(input_ids=input_ids, attention_mask=attention_mask, past_key_values=None)
+    
+    wrapped_model = GPT2Wrapper(model)
     
     torch.onnx.export(
-        model_wrapper,
+        wrapped_model,
         (dummy_input['input_ids'], dummy_input['attention_mask']),
         output_path / "model.onnx",
         input_names=['input_ids', 'attention_mask'],
@@ -113,12 +120,19 @@ def export_to_onnx_fp16(model, tokenizer):
     model_fp16 = model.half()
     dummy_input = tokenizer("Hello world", return_tensors="pt")
     
-    # Wrapper function to handle model forward with proper arguments
-    def model_wrapper_fp16(input_ids, attention_mask):
-        return model_fp16(input_ids=input_ids, attention_mask=attention_mask, past_key_values=None)
+    # Wrapper module to handle model forward with proper arguments
+    class GPT2WrapperFP16(torch.nn.Module):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
+        
+        def forward(self, input_ids, attention_mask):
+            return self.model(input_ids=input_ids, attention_mask=attention_mask, past_key_values=None)
+    
+    wrapped_model = GPT2WrapperFP16(model_fp16)
     
     torch.onnx.export(
-        model_wrapper_fp16,
+        wrapped_model,
         (dummy_input['input_ids'], dummy_input['attention_mask']),
         output_path / "model.onnx",
         input_names=['input_ids', 'attention_mask'],
