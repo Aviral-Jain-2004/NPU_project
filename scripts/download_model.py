@@ -79,7 +79,7 @@ def export_to_onnx_fp32(model, tokenizer):
     torch.onnx.export(
         wrapped_model,
         (dummy_input['input_ids'], dummy_input['attention_mask']),
-        output_path / "model.onnx",
+        str(output_path / "model.onnx"),
         input_names=['input_ids', 'attention_mask'],
         output_names=['logits'],
         dynamic_axes={
@@ -87,7 +87,8 @@ def export_to_onnx_fp32(model, tokenizer):
             'attention_mask': {0: 'batch_size', 1: 'sequence_length'},
             'logits': {0: 'batch_size', 1: 'sequence_length'}
         },
-        opset_version=14
+        opset_version=14,
+        use_external_data_format=True
     )
     
     tokenizer.save_pretrained(output_path)
@@ -134,7 +135,7 @@ def export_to_onnx_fp16(model, tokenizer):
     torch.onnx.export(
         wrapped_model,
         (dummy_input['input_ids'], dummy_input['attention_mask']),
-        output_path / "model.onnx",
+        str(output_path / "model.onnx"),
         input_names=['input_ids', 'attention_mask'],
         output_names=['logits'],
         dynamic_axes={
@@ -142,7 +143,8 @@ def export_to_onnx_fp16(model, tokenizer):
             'attention_mask': {0: 'batch_size', 1: 'sequence_length'},
             'logits': {0: 'batch_size', 1: 'sequence_length'}
         },
-        opset_version=14
+        opset_version=14,
+        use_external_data_format=True
     )
     
     tokenizer.save_pretrained(output_path)
