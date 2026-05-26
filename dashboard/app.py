@@ -113,6 +113,9 @@ def main():
         'gpt2-fp32': {'name': 'GPT-2 (Small)', 'params': '117M', 'size': '548MB', 'precision': 'FP32'},
         'gpt2-fp16': {'name': 'GPT-2 (Small)', 'params': '117M', 'size': '548MB', 'precision': 'FP16'},
         'gpt2-int8': {'name': 'GPT-2 (Small)', 'params': '117M', 'size': '548MB', 'precision': 'INT8'},
+        'gpt2-medium-fp32': {'name': 'GPT-2 (Medium)', 'params': '345M', 'size': '1.4GB', 'precision': 'FP32'},
+        'gpt2-medium-fp16': {'name': 'GPT-2 (Medium)', 'params': '345M', 'size': '1.4GB', 'precision': 'FP16'},
+        'gpt2-medium-int8': {'name': 'GPT-2 (Medium)', 'params': '345M', 'size': '1.4GB', 'precision': 'INT8'},
     }
     
     # Load data
@@ -123,15 +126,11 @@ def main():
         st.info("Run `python scripts/run_benchmarks.py` on your remote desktop to generate benchmark data.")
         return
     
-    # Get available models from data
-    available_models = df['model'].unique()
-    
     # Create tabs for model selection
-    tab_labels = ['GPT-2 Small'] + [f'Other Model {i+1}' for i in range(len(available_models)-1)]
-    tabs = st.tabs(tab_labels)
+    tab1, tab2 = st.tabs(["GPT-2 Small", "GPT-2 Medium"])
     
-    # For now, use the first tab for GPT-2 Small (our current model)
-    with tabs[0]:
+    # GPT-2 Small tab
+    with tab1:
         # Model Details Section
         st.header("Model Details")
         col1, col2, col3 = st.columns(3)
@@ -149,92 +148,163 @@ def main():
         
         st.markdown("---")
         
-        # Filter data for GPT-2 models
-        df_filtered = df[df['model'].str.contains('gpt2', case=False, na=False)]
+        # Filter data for GPT-2 Small models
+        df_small = df[df['model'].str.contains('gpt2-', case=False, na=False) & ~df['model'].str.contains('medium', case=False, na=False)]
         
-        if df_filtered.empty:
-            st.warning("No benchmark data found for GPT-2 models.")
-            return
-        
-        # Hardware Comparisons by Precision
-        st.header("Hardware Comparisons by Precision")
-        
-        precisions = ['int8', 'fp16', 'fp32']
-        metrics = ['latency', 'token_generation', 'throughput']
-        
-        # Create tabs for each precision
-        tab1, tab2, tab3 = st.tabs(["INT8 Precision", "FP16 Precision", "FP32 Precision"])
-        
-        with tab1:
-            st.subheader("INT8 Precision Comparisons")
-            col1, col2, col3 = st.columns(3)
+        if not df_small.empty:
+            # Hardware Comparisons by Precision
+            st.header("Hardware Comparisons by Precision")
             
-            with col1:
-                fig_latency = create_comparison_chart(df_filtered, 'int8', 'latency', '')
-                if fig_latency:
-                    st.plotly_chart(fig_latency, use_container_width=True)
+            # Create tabs for each precision
+            tab_small_int8, tab_small_fp16, tab_small_fp32 = st.tabs(["INT8 Precision", "FP16 Precision", "FP32 Precision"])
             
-            with col2:
-                fig_token = create_comparison_chart(df_filtered, 'int8', 'token_generation', '')
-                if fig_token:
-                    st.plotly_chart(fig_token, use_container_width=True)
+            with tab_small_int8:
+                st.subheader("INT8 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_small, 'int8', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_small, 'int8', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_small, 'int8', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
             
-            with col3:
-                fig_throughput = create_comparison_chart(df_filtered, 'int8', 'throughput', '')
-                if fig_throughput:
-                    st.plotly_chart(fig_throughput, use_container_width=True)
-        
-        with tab2:
-            st.subheader("FP16 Precision Comparisons")
-            col1, col2, col3 = st.columns(3)
+            with tab_small_fp16:
+                st.subheader("FP16 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_small, 'fp16', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_small, 'fp16', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_small, 'fp16', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
             
-            with col1:
-                fig_latency = create_comparison_chart(df_filtered, 'fp16', 'latency', '')
-                if fig_latency:
-                    st.plotly_chart(fig_latency, use_container_width=True)
-            
-            with col2:
-                fig_token = create_comparison_chart(df_filtered, 'fp16', 'token_generation', '')
-                if fig_token:
-                    st.plotly_chart(fig_token, use_container_width=True)
-            
-            with col3:
-                fig_throughput = create_comparison_chart(df_filtered, 'fp16', 'throughput', '')
-                if fig_throughput:
-                    st.plotly_chart(fig_throughput, use_container_width=True)
-        
-        with tab3:
-            st.subheader("FP32 Precision Comparisons")
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                fig_latency = create_comparison_chart(df_filtered, 'fp32', 'latency', '')
-                if fig_latency:
-                    st.plotly_chart(fig_latency, use_container_width=True)
-            
-            with col2:
-                fig_token = create_comparison_chart(df_filtered, 'fp32', 'token_generation', '')
-                if fig_token:
-                    st.plotly_chart(fig_token, use_container_width=True)
-            
-            with col3:
-                fig_throughput = create_comparison_chart(df_filtered, 'fp32', 'throughput', '')
-                if fig_throughput:
-                    st.plotly_chart(fig_throughput, use_container_width=True)
+            with tab_small_fp32:
+                st.subheader("FP32 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_small, 'fp32', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_small, 'fp32', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_small, 'fp32', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+        else:
+            st.warning("No benchmark data found for GPT-2 Small models.")
     
-    # Placeholder tabs for other models
-    for i, tab in enumerate(tabs[1:]):
-        with tab:
-            st.info(f"Model {i+2} - No benchmark data available yet")
-            st.markdown("""
-            | Model | Parameters | Size |
-            |-------|-----------|------|
-            | GPT-2 (Small) | 117M | 548MB ✓ |
-            | GPT-2 Medium | 345M | 1.4GB |
-            | GPT-2 Large | 774M | 3.25GB |
+    # GPT-2 Medium tab
+    with tab2:
+        # Model Details Section
+        st.header("Model Details")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Name", "GPT-2 (Medium)")
+        
+        with col2:
+            st.metric("Parameters", "345M")
+        
+        with col3:
+            st.metric("Model Size", "1.4GB")
+        
+        st.info("**Precision Variants:** FP32, FP16, INT8")
+        
+        st.markdown("---")
+        
+        # Filter data for GPT-2 Medium models
+        df_medium = df[df['model'].str.contains('medium', case=False, na=False)]
+        
+        if not df_medium.empty:
+            # Hardware Comparisons by Precision
+            st.header("Hardware Comparisons by Precision")
             
-            *Note: GPT-2 Large exceeds 2GB protobuf limit for ONNX export*
-            """)
+            # Create tabs for each precision
+            tab_medium_int8, tab_medium_fp16, tab_medium_fp32 = st.tabs(["INT8 Precision", "FP16 Precision", "FP32 Precision"])
+            
+            with tab_medium_int8:
+                st.subheader("INT8 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_medium, 'int8', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_medium, 'int8', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_medium, 'int8', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+            
+            with tab_medium_fp16:
+                st.subheader("FP16 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_medium, 'fp16', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_medium, 'fp16', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_medium, 'fp16', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+            
+            with tab_medium_fp32:
+                st.subheader("FP32 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_medium, 'fp32', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_medium, 'fp32', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_medium, 'fp32', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+        else:
+            st.warning("No benchmark data found for GPT-2 Medium models.")
+            st.info("Run `python scripts/download_model.py` and `python scripts/run_benchmarks.py` to generate GPT-2 Medium benchmarks.")
     
     # Display summary statistics
     st.header("📊 Summary Statistics")

@@ -38,9 +38,9 @@ def main():
     # Define benchmark configurations
     # Model names should match the directories created by download_model.py
     model_configs = [
-        ("gpt2-fp32", "fp32"),
-        ("gpt2-fp16", "fp16"),
-        ("gpt2-int8", "int8"),
+        ("gpt2-medium-fp32", "fp32"),
+        ("gpt2-medium-fp16", "fp16"),
+        ("gpt2-medium-int8", "int8"),
     ]
     
     # Hardware to test

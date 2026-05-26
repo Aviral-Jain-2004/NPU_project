@@ -18,7 +18,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "gpt2"
+MODEL_NAME = "gpt2-medium"
 OUTPUT_DIR = Path(__file__).parent.parent / "models"
 
 def create_directories():
@@ -44,7 +44,7 @@ def export_to_onnx_fp32(model, tokenizer):
     """Export model to ONNX in FP32 format."""
     logger.info("Exporting to ONNX FP32...")
     
-    output_path = OUTPUT_DIR / "gpt2-fp32"
+    output_path = OUTPUT_DIR / "gpt2-medium-fp32"
     output_path.mkdir(parents=True, exist_ok=True)
     
     if OPTIMUM_AVAILABLE:
@@ -95,13 +95,13 @@ def export_to_onnx_fp32(model, tokenizer):
 
 def export_to_onnx_fp16(model, tokenizer):
     """Export model to ONNX in FP16 format by converting FP32 weights."""
-    logger.info("Exporting to ONNX FP16 by converting FP32 weights...")
+    logger.info("Exporting to ONNX FP16 by converting FP16 weights...")
     
-    output_path = OUTPUT_DIR / "gpt2-fp16"
+    output_path = OUTPUT_DIR / "gpt2-medium-fp16"
     output_path.mkdir(parents=True, exist_ok=True)
     
     # First ensure FP32 model exists
-    fp32_path = OUTPUT_DIR / "gpt2-fp32"
+    fp32_path = OUTPUT_DIR / "gpt2-medium-fp32"
     if not fp32_path.exists():
         export_to_onnx_fp32(model, tokenizer)
     
@@ -143,11 +143,11 @@ def export_to_onnx_int8(model, tokenizer):
     """Export model to ONNX with INT8 quantization."""
     logger.info("Exporting to ONNX INT8...")
     
-    output_path = OUTPUT_DIR / "gpt2-int8"
+    output_path = OUTPUT_DIR / "gpt2-medium-int8"
     output_path.mkdir(parents=True, exist_ok=True)
     
     # First export FP32 model
-    fp32_path = OUTPUT_DIR / "gpt2-fp32"
+    fp32_path = OUTPUT_DIR / "gpt2-medium-fp32"
     if not fp32_path.exists():
         export_to_onnx_fp32(model, tokenizer)
     
