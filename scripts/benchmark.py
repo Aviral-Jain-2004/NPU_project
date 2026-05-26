@@ -98,9 +98,11 @@ class BenchmarkRunner:
             max_length=128
         )
         
-        # Convert input_ids to int64 as ONNX model expects int64
+        # Convert inputs to int64 as ONNX model expects int64
         if 'input_ids' in inputs:
             inputs['input_ids'] = inputs['input_ids'].astype(np.int64)
+        if 'attention_mask' in inputs:
+            inputs['attention_mask'] = inputs['attention_mask'].astype(np.int64)
         
         return inputs
     
