@@ -1,0 +1,23 @@
+# Core ONNX Runtime packages
+onnx==1.16.0
+onnxruntime==1.18.0
+onnxruntime-gpu==1.18.0
+onnxruntime-directml==1.18.0
+
+# Model handling
+transformers==4.38.0
+torch==2.2.0
+optimum==1.16.0
+
+# Data processing
+numpy==1.24.3
+pandas==2.0.3
+
+# Dashboard
+streamlit==1.31.0
+plotly==5.18.0
+
+# Utilities
+psutil==5.9.5
+tqdm==4.66.1
+pyyaml==6.0.1
