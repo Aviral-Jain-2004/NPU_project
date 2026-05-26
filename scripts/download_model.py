@@ -18,7 +18,14 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "gpt2-medium"
+# Model configurations
+MODEL_CONFIGS = {
+    'gpt2-medium': {'name': 'gpt2-medium', 'params': '345M', 'size': '1.4GB'},
+    'pythia-410m': {'name': 'EleutherAI/pythia-410m', 'params': '410M', 'size': '1.6GB'},
+}
+
+# Default model to download
+DEFAULT_MODEL = 'gpt2-medium'
 OUTPUT_DIR = Path(__file__).parent.parent / "models"
 
 def create_directories():
@@ -26,31 +33,36 @@ def create_directories():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     logger.info(f"Created output directory: {OUTPUT_DIR}")
 
-def download_model():
-    """Download GPT-2 model and tokenizer."""
-    logger.info(f"Downloading {MODEL_NAME}...")
+def download_model(model_key):
+    """Download model and tokenizer."""
+    model_config = MODEL_CONFIGS[model_key]
+    model_name = model_config['name']
+    logger.info(f"Downloading {model_name}...")
     
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
     
     # Save tokenizer
-    tokenizer_path = OUTPUT_DIR / "tokenizer"
+    tokenizer_path = OUTPUT_DIR / f"{model_key}-tokenizer"
+    tokenizer_path.mkdir(parents=True, exist_ok=True)
     tokenizer.save_pretrained(tokenizer_path)
     logger.info(f"Tokenizer saved to {tokenizer_path}")
     
-    return model, tokenizer
+    return model, tokenizer, model_key
 
-def export_to_onnx_fp32(model, tokenizer):
+def export_to_onnx_fp32(model, tokenizer, model_key):
     """Export model to ONNX in FP32 format."""
-    logger.info("Exporting to ONNX FP32...")
+    model_config = MODEL_CONFIGS[model_key]
+    model_name = model_config['name']
+    logger.info(f"Exporting {model_name} to ONNX FP32...")
     
-    output_path = OUTPUT_DIR / "gpt2-medium-fp32"
+    output_path = OUTPUT_DIR / f"{model_key}-fp32"
     output_path.mkdir(parents=True, exist_ok=True)
     
     if OPTIMUM_AVAILABLE:
         try:
             ort_model = ORTModelForCausalLM.from_pretrained(
-                MODEL_NAME,
+                model_name,
                 export=True,
                 provider="CPUExecutionProvider",
             )
@@ -66,7 +78,7 @@ def export_to_onnx_fp32(model, tokenizer):
     dummy_input = tokenizer("Hello world", return_tensors="pt")
     
     # Wrapper module to handle model forward with proper arguments
-    class GPT2Wrapper(torch.nn.Module):
+    class ModelWrapper(torch.nn.Module):
         def __init__(self, model):
             super().__init__()
             self.model = model
@@ -74,7 +86,7 @@ def export_to_onnx_fp32(model, tokenizer):
         def forward(self, input_ids, attention_mask):
             return self.model(input_ids=input_ids, attention_mask=attention_mask, past_key_values=None)
     
-    wrapped_model = GPT2Wrapper(model)
+    wrapped_model = ModelWrapper(model)
     
     torch.onnx.export(
         wrapped_model,
@@ -93,17 +105,19 @@ def export_to_onnx_fp32(model, tokenizer):
     tokenizer.save_pretrained(output_path)
     logger.info(f"FP32 model saved to {output_path}")
 
-def export_to_onnx_fp16(model, tokenizer):
+def export_to_onnx_fp16(model, tokenizer, model_key):
     """Export model to ONNX in FP16 format by converting FP32 weights."""
-    logger.info("Exporting to ONNX FP16 by converting FP16 weights...")
+    model_config = MODEL_CONFIGS[model_key]
+    model_name = model_config['name']
+    logger.info(f"Exporting {model_name} to ONNX FP16 by converting FP32 weights...")
     
-    output_path = OUTPUT_DIR / "gpt2-medium-fp16"
+    output_path = OUTPUT_DIR / f"{model_key}-fp16"
     output_path.mkdir(parents=True, exist_ok=True)
     
     # First ensure FP32 model exists
-    fp32_path = OUTPUT_DIR / "gpt2-medium-fp32"
+    fp32_path = OUTPUT_DIR / f"{model_key}-fp32"
     if not fp32_path.exists():
-        export_to_onnx_fp32(model, tokenizer)
+        export_to_onnx_fp32(model, tokenizer, model_key)
     
     # Use onnx to convert FP32 to FP16
     try:
@@ -139,17 +153,19 @@ def export_to_onnx_fp16(model, tokenizer):
         logger.warning(f"FP16 export failed: {e}")
         logger.info("Skipping FP16 export")
 
-def export_to_onnx_int8(model, tokenizer):
+def export_to_onnx_int8(model, tokenizer, model_key):
     """Export model to ONNX with INT8 quantization."""
-    logger.info("Exporting to ONNX INT8...")
+    model_config = MODEL_CONFIGS[model_key]
+    model_name = model_config['name']
+    logger.info(f"Exporting {model_name} to ONNX INT8...")
     
-    output_path = OUTPUT_DIR / "gpt2-medium-int8"
+    output_path = OUTPUT_DIR / f"{model_key}-int8"
     output_path.mkdir(parents=True, exist_ok=True)
     
     # First export FP32 model
-    fp32_path = OUTPUT_DIR / "gpt2-medium-fp32"
+    fp32_path = OUTPUT_DIR / f"{model_key}-fp32"
     if not fp32_path.exists():
-        export_to_onnx_fp32(model, tokenizer)
+        export_to_onnx_fp32(model, tokenizer, model_key)
     
     # Use onnxruntime for quantization
     try:
@@ -183,17 +199,23 @@ def main():
     
     create_directories()
     
-    # Download model
-    model, tokenizer = download_model()
+    # Download and convert all configured models
+    for model_key in MODEL_CONFIGS.keys():
+        logger.info(f"Processing model: {model_key}")
+        
+        # Download model
+        model, tokenizer, model_key = download_model(model_key)
+        
+        # Export to different precisions
+        export_to_onnx_fp32(model, tokenizer, model_key)
+        export_to_onnx_fp16(model, tokenizer, model_key)
+        
+        # INT8 quantization
+        export_to_onnx_int8(model, tokenizer, model_key)
+        
+        logger.info(f"Completed processing for {model_key}")
     
-    # Export to different precisions
-    export_to_onnx_fp32(model, tokenizer)
-    export_to_onnx_fp16(model, tokenizer)
-    
-    # INT8 quantization
-    export_to_onnx_int8(model, tokenizer)
-    
-    logger.info("Model download and conversion complete!")
+    logger.info("All models download and conversion complete!")
 
 if __name__ == "__main__":
     main()

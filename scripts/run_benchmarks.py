@@ -41,6 +41,9 @@ def main():
         ("gpt2-medium-fp32", "fp32"),
         ("gpt2-medium-fp16", "fp16"),
         ("gpt2-medium-int8", "int8"),
+        ("pythia-410m-fp32", "fp32"),
+        ("pythia-410m-fp16", "fp16"),
+        ("pythia-410m-int8", "int8"),
     ]
     
     # Hardware to test
