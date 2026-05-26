@@ -7,7 +7,7 @@ onnxruntime-directml==1.18.0
 # Model handling
 transformers==4.38.0
 torch==2.2.0
-optimum==1.16.0
+optimum>=1.20.0
 
 # Data processing
 numpy>=1.26.0
