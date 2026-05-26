@@ -65,8 +65,12 @@ def export_to_onnx_fp32(model, tokenizer):
     logger.info("Using manual ONNX export...")
     dummy_input = tokenizer("Hello world", return_tensors="pt")
     
+    # Wrapper function to handle model forward with proper arguments
+    def model_wrapper(input_ids, attention_mask):
+        return model(input_ids=input_ids, attention_mask=attention_mask, past_key_values=None)
+    
     torch.onnx.export(
-        model,
+        model_wrapper,
         (dummy_input['input_ids'], dummy_input['attention_mask']),
         output_path / "model.onnx",
         input_names=['input_ids', 'attention_mask'],
@@ -109,8 +113,12 @@ def export_to_onnx_fp16(model, tokenizer):
     model_fp16 = model.half()
     dummy_input = tokenizer("Hello world", return_tensors="pt")
     
+    # Wrapper function to handle model forward with proper arguments
+    def model_wrapper_fp16(input_ids, attention_mask):
+        return model_fp16(input_ids=input_ids, attention_mask=attention_mask, past_key_values=None)
+    
     torch.onnx.export(
-        model_fp16,
+        model_wrapper_fp16,
         (dummy_input['input_ids'], dummy_input['attention_mask']),
         output_path / "model.onnx",
         input_names=['input_ids', 'attention_mask'],
