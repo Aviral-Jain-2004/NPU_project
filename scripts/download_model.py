@@ -18,7 +18,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "gpt2-large"
+MODEL_NAME = "gpt2"
 OUTPUT_DIR = Path(__file__).parent.parent / "models"
 
 def create_directories():
@@ -27,7 +27,7 @@ def create_directories():
     logger.info(f"Created output directory: {OUTPUT_DIR}")
 
 def download_model():
-    """Download GPT-2 Large model and tokenizer."""
+    """Download GPT-2 model and tokenizer."""
     logger.info(f"Downloading {MODEL_NAME}...")
     
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -44,7 +44,7 @@ def export_to_onnx_fp32(model, tokenizer):
     """Export model to ONNX in FP32 format."""
     logger.info("Exporting to ONNX FP32...")
     
-    output_path = OUTPUT_DIR / "gpt2-large-fp32"
+    output_path = OUTPUT_DIR / "gpt2-fp32"
     output_path.mkdir(parents=True, exist_ok=True)
     
     if OPTIMUM_AVAILABLE:
@@ -87,8 +87,7 @@ def export_to_onnx_fp32(model, tokenizer):
             'attention_mask': {0: 'batch_size', 1: 'sequence_length'},
             'logits': {0: 'batch_size', 1: 'sequence_length'}
         },
-        opset_version=14,
-        use_external_data_format=True
+        opset_version=14
     )
     
     tokenizer.save_pretrained(output_path)
@@ -98,7 +97,7 @@ def export_to_onnx_fp16(model, tokenizer):
     """Export model to ONNX in FP16 format."""
     logger.info("Exporting to ONNX FP16...")
     
-    output_path = OUTPUT_DIR / "gpt2-large-fp16"
+    output_path = OUTPUT_DIR / "gpt2-fp16"
     output_path.mkdir(parents=True, exist_ok=True)
     
     if OPTIMUM_AVAILABLE:
@@ -143,8 +142,7 @@ def export_to_onnx_fp16(model, tokenizer):
             'attention_mask': {0: 'batch_size', 1: 'sequence_length'},
             'logits': {0: 'batch_size', 1: 'sequence_length'}
         },
-        opset_version=14,
-        use_external_data_format=True
+        opset_version=14
     )
     
     tokenizer.save_pretrained(output_path)
@@ -154,11 +152,11 @@ def export_to_onnx_int8(model, tokenizer):
     """Export model to ONNX with INT8 quantization."""
     logger.info("Exporting to ONNX INT8...")
     
-    output_path = OUTPUT_DIR / "gpt2-large-int8"
+    output_path = OUTPUT_DIR / "gpt2-int8"
     output_path.mkdir(parents=True, exist_ok=True)
     
     # First export FP32 model
-    fp32_path = OUTPUT_DIR / "gpt2-large-fp32"
+    fp32_path = OUTPUT_DIR / "gpt2-fp32"
     if not fp32_path.exists():
         export_to_onnx_fp32(model, tokenizer)
     
