@@ -109,6 +109,40 @@ def main():
     st.title("🚀 NPU LLM Benchmark Dashboard")
     st.markdown("---")
     
+    # Model Information Section
+    st.header("🤖 Model Information")
+    
+    # Current model being benchmarked
+    current_model = "GPT-2 (Small)"
+    current_params = "117M"
+    current_size = "548MB"
+    
+    # Available models for reference
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Current Model")
+        st.info(f"""
+        **Name:** {current_model}
+        **Parameters:** {current_params}
+        **Model Size:** {current_size}
+        **Precision Variants:** FP32, FP16, INT8
+        """)
+    
+    with col2:
+        st.subheader("Available GPT-2 Models")
+        st.markdown("""
+        | Model | Parameters | Size |
+        |-------|-----------|------|
+        | GPT-2 (Small) | 117M | 548MB |
+        | GPT-2 Medium | 345M | 1.4GB |
+        | GPT-2 Large | 774M | 3.25GB |
+        
+        *Note: GPT-2 Large exceeds 2GB protobuf limit for ONNX export*
+        """)
+    
+    st.markdown("---")
+    
     # Load data
     df = load_data()
     
