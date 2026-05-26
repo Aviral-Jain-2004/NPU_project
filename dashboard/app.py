@@ -107,44 +107,79 @@ def create_comparison_chart(df, precision, metric, title_suffix):
 def main():
     """Main dashboard application."""
     st.title("🚀 NPU LLM Benchmark Dashboard")
-    st.markdown("---")
     
-    # Model Information Section
-    st.header("🤖 Model Information")
+    # Sidebar for model selection
+    st.sidebar.header("🔍 Model Selection")
     
-    # Current model being benchmarked
-    current_model = "GPT-2 (Small)"
-    current_params = "117M"
-    current_size = "548MB"
+    # Model information dictionary
+    model_info = {
+        'gpt2-fp32': {'name': 'GPT-2 (Small)', 'params': '117M', 'size': '548MB', 'precision': 'FP32'},
+        'gpt2-fp16': {'name': 'GPT-2 (Small)', 'params': '117M', 'size': '548MB', 'precision': 'FP16'},
+        'gpt2-int8': {'name': 'GPT-2 (Small)', 'params': '117M', 'size': '548MB', 'precision': 'INT8'},
+    }
     
     # Available models for reference
-    col1, col2 = st.columns(2)
+    st.sidebar.subheader("Available GPT-2 Models")
+    st.sidebar.markdown("""
+    | Model | Parameters | Size |
+    |-------|-----------|------|
+    | GPT-2 (Small) | 117M | 548MB |
+    | GPT-2 Medium | 345M | 1.4GB |
+    | GPT-2 Large | 774M | 3.25GB |
     
-    with col1:
-        st.subheader("Current Model")
-        st.info(f"""
-        **Name:** {current_model}
-        **Parameters:** {current_params}
-        **Model Size:** {current_size}
-        **Precision Variants:** FP32, FP16, INT8
-        """)
-    
-    with col2:
-        st.subheader("Available GPT-2 Models")
-        st.markdown("""
-        | Model | Parameters | Size |
-        |-------|-----------|------|
-        | GPT-2 (Small) | 117M | 548MB |
-        | GPT-2 Medium | 345M | 1.4GB |
-        | GPT-2 Large | 774M | 3.25GB |
-        
-        *Note: GPT-2 Large exceeds 2GB protobuf limit for ONNX export*
-        """)
-    
-    st.markdown("---")
+    *Note: GPT-2 Large exceeds 2GB protobuf limit for ONNX export*
+    """)
     
     # Load data
     df = load_data()
+    
+    if df.empty:
+        st.warning("No benchmark data found. Please run the benchmark script first.")
+        st.info("Run `python scripts/run_benchmarks.py` on your remote desktop to generate benchmark data.")
+        return
+    
+    # Get available models from data
+    available_models = df['model'].unique()
+    
+    # Model selection dropdown
+    selected_model = st.sidebar.selectbox(
+        "Select Model Variant",
+        options=['All Models'] + list(available_models),
+        index=0
+    )
+    
+    st.markdown("---")
+    
+    # Model Information Section (dynamic based on selection)
+    if selected_model != 'All Models':
+        st.header(f"🤖 Model Information: {selected_model}")
+        
+        if selected_model in model_info:
+            info = model_info[selected_model]
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Model Name", info['name'])
+            
+            with col2:
+                st.metric("Parameters", info['params'])
+            
+            with col3:
+                st.metric("Model Size", info['size'])
+            
+            st.info(f"**Precision:** {info['precision']}")
+        else:
+            st.info("Model details not available")
+        
+        st.markdown("---")
+    else:
+        st.header("🤖 Model Information")
+        st.info("Select a specific model variant from the sidebar to view detailed information")
+        st.markdown("---")
+    
+    # Filter data based on model selection
+    if selected_model != 'All Models':
+        df = df[df['model'] == selected_model]
     
     if df.empty:
         st.warning("No benchmark data found. Please run the benchmark script first.")
