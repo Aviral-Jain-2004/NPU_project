@@ -124,7 +124,6 @@ def export_to_onnx_int8(model, tokenizer):
             onnx_model_path,
             quantized_model_path,
             weight_type=QuantType.QUInt8,
-            optimize_model=True,
             per_channel=False,
             reduce_range=False
         )
