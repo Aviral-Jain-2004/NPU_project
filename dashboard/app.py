@@ -119,6 +119,9 @@ def main():
         'pythia-410m-fp32': {'name': 'Pythia 410M', 'params': '410M', 'size': '1.6GB', 'precision': 'FP32'},
         'pythia-410m-fp16': {'name': 'Pythia 410M', 'params': '410M', 'size': '1.6GB', 'precision': 'FP16'},
         'pythia-410m-int8': {'name': 'Pythia 410M', 'params': '410M', 'size': '1.6GB', 'precision': 'INT8'},
+        'pythia-800m-fp32': {'name': 'Pythia 800M', 'params': '800M', 'size': '3.1GB', 'precision': 'FP32'},
+        'pythia-800m-fp16': {'name': 'Pythia 800M', 'params': '800M', 'size': '3.1GB', 'precision': 'FP16'},
+        'pythia-800m-int8': {'name': 'Pythia 800M', 'params': '800M', 'size': '3.1GB', 'precision': 'INT8'},
     }
     
     # Load data
@@ -130,7 +133,7 @@ def main():
         return
     
     # Create tabs for model selection
-    tab1, tab2, tab3 = st.tabs(["GPT-2 Small", "GPT-2 Medium", "Pythia 410M"])
+    tab1, tab2, tab3, tab4 = st.tabs(["GPT-2 Small", "GPT-2 Medium", "Pythia 410M", "Pythia 800M"])
     
     # GPT-2 Small tab
     with tab1:
@@ -397,6 +400,95 @@ def main():
         else:
             st.warning("No benchmark data found for Pythia 410M models.")
             st.info("Run `python scripts/download_model.py` and `python scripts/run_benchmarks.py` to generate Pythia 410M benchmarks.")
+    
+    # Pythia 800M tab
+    with tab4:
+        # Model Details Section
+        st.header("Model Details")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Name", "Pythia 800M")
+        
+        with col2:
+            st.metric("Parameters", "800M")
+        
+        with col3:
+            st.metric("Model Size", "3.1GB")
+        
+        st.info("**Precision Variants:** FP32, FP16, INT8")
+        
+        st.markdown("---")
+        
+        # Filter data for Pythia 800M models
+        df_pythia_800 = df[df['model'].str.contains('pythia-800m', case=False, na=False)]
+        
+        if not df_pythia_800.empty:
+            # Hardware Comparisons by Precision
+            st.header("Hardware Comparisons by Precision")
+            
+            # Create tabs for each precision
+            tab_pythia800_int8, tab_pythia800_fp16, tab_pythia800_fp32 = st.tabs(["INT8 Precision", "FP16 Precision", "FP32 Precision"])
+            
+            with tab_pythia800_int8:
+                st.subheader("INT8 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_pythia_800, 'int8', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_pythia_800, 'int8', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_pythia_800, 'int8', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+            
+            with tab_pythia800_fp16:
+                st.subheader("FP16 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_pythia_800, 'fp16', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_pythia_800, 'fp16', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_pythia_800, 'fp16', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+            
+            with tab_pythia800_fp32:
+                st.subheader("FP32 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_pythia_800, 'fp32', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_pythia_800, 'fp32', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_pythia_800, 'fp32', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+        else:
+            st.warning("No benchmark data found for Pythia 800M models.")
+            st.info("Run `python scripts/download_model.py` and `python scripts/run_benchmarks.py` to generate Pythia 800M benchmarks.")
     
     # Display summary statistics
     st.header("📊 Summary Statistics")

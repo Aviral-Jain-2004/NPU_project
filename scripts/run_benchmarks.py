@@ -44,6 +44,9 @@ def main():
         ("pythia-410m-fp32", "fp32"),
         ("pythia-410m-fp16", "fp16"),
         ("pythia-410m-int8", "int8"),
+        ("pythia-800m-fp32", "fp32"),
+        ("pythia-800m-fp16", "fp16"),
+        ("pythia-800m-int8", "int8"),
     ]
     
     # Hardware to test

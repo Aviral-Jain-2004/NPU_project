@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 MODEL_CONFIGS = {
     'gpt2-medium': {'name': 'gpt2-medium', 'params': '345M', 'size': '1.4GB'},
     'pythia-410m': {'name': 'EleutherAI/pythia-410m', 'params': '410M', 'size': '1.6GB'},
+    'pythia-800m': {'name': 'EleutherAI/pythia-800m', 'params': '800M', 'size': '3.1GB'},
 }
 
 # Default model to download
