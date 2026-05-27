@@ -128,9 +128,6 @@ def main():
         'phi-3-mini-fp32': {'name': 'Phi-3 Mini', 'params': '3.8B', 'size': '7.8GB', 'precision': 'FP32'},
         'phi-3-mini-fp16': {'name': 'Phi-3 Mini', 'params': '3.8B', 'size': '7.8GB', 'precision': 'FP16'},
         'phi-3-mini-int8': {'name': 'Phi-3 Mini', 'params': '3.8B', 'size': '7.8GB', 'precision': 'INT8'},
-        'qwen-7b-fp32': {'name': 'Qwen-7B', 'params': '7B', 'size': '14.3GB', 'precision': 'FP32'},
-        'qwen-7b-fp16': {'name': 'Qwen-7B', 'params': '7B', 'size': '14.3GB', 'precision': 'FP16'},
-        'qwen-7b-int8': {'name': 'Qwen-7B', 'params': '7B', 'size': '14.3GB', 'precision': 'INT8'},
     }
     
     # Load data
@@ -142,7 +139,7 @@ def main():
         return
     
     # Create tabs for model selection
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["GPT-2 Small", "GPT-2 Medium", "Pythia 410M", "Pythia 800M", "TinyLlama 1.1B", "Phi-3 Mini", "Qwen-7B"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["GPT-2 Small", "GPT-2 Medium", "Pythia 410M", "Pythia 800M", "TinyLlama 1.1B", "Phi-3 Mini"])
     
     # GPT-2 Small tab
     with tab1:
@@ -676,95 +673,6 @@ def main():
         else:
             st.warning("No benchmark data found for Phi-3 Mini models.")
             st.info("Run `python scripts/download_model.py` and `python scripts/run_benchmarks.py` to generate Phi-3 Mini benchmarks.")
-    
-    # Qwen-7B tab
-    with tab7:
-        # Model Details Section
-        st.header("Model Details")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("Name", "Qwen-7B")
-        
-        with col2:
-            st.metric("Parameters", "7B")
-        
-        with col3:
-            st.metric("Model Size", "14.3GB")
-        
-        st.info("**Precision Variants:** FP32, FP16, INT8")
-        
-        st.markdown("---")
-        
-        # Filter data for Qwen-7B models
-        df_qwen = df[df['model'].str.contains('qwen-7b', case=False, na=False)]
-        
-        if not df_qwen.empty:
-            # Hardware Comparisons by Precision
-            st.header("Hardware Comparisons by Precision")
-            
-            # Create tabs for each precision
-            tab_qwen_int8, tab_qwen_fp16, tab_qwen_fp32 = st.tabs(["INT8 Precision", "FP16 Precision", "FP32 Precision"])
-            
-            with tab_qwen_int8:
-                st.subheader("INT8 Precision Comparisons")
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    fig_latency = create_comparison_chart(df_qwen, 'int8', 'latency', '')
-                    if fig_latency:
-                        st.plotly_chart(fig_latency, use_container_width=True)
-                
-                with col2:
-                    fig_token = create_comparison_chart(df_qwen, 'int8', 'token_generation', '')
-                    if fig_token:
-                        st.plotly_chart(fig_token, use_container_width=True)
-                
-                with col3:
-                    fig_throughput = create_comparison_chart(df_qwen, 'int8', 'throughput', '')
-                    if fig_throughput:
-                        st.plotly_chart(fig_throughput, use_container_width=True)
-            
-            with tab_qwen_fp16:
-                st.subheader("FP16 Precision Comparisons")
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    fig_latency = create_comparison_chart(df_qwen, 'fp16', 'latency', '')
-                    if fig_latency:
-                        st.plotly_chart(fig_latency, use_container_width=True)
-                
-                with col2:
-                    fig_token = create_comparison_chart(df_qwen, 'fp16', 'token_generation', '')
-                    if fig_token:
-                        st.plotly_chart(fig_token, use_container_width=True)
-                
-                with col3:
-                    fig_throughput = create_comparison_chart(df_qwen, 'fp16', 'throughput', '')
-                    if fig_throughput:
-                        st.plotly_chart(fig_throughput, use_container_width=True)
-            
-            with tab_qwen_fp32:
-                st.subheader("FP32 Precision Comparisons")
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    fig_latency = create_comparison_chart(df_qwen, 'fp32', 'latency', '')
-                    if fig_latency:
-                        st.plotly_chart(fig_latency, use_container_width=True)
-                
-                with col2:
-                    fig_token = create_comparison_chart(df_qwen, 'fp32', 'token_generation', '')
-                    if fig_token:
-                        st.plotly_chart(fig_token, use_container_width=True)
-                
-                with col3:
-                    fig_throughput = create_comparison_chart(df_qwen, 'fp32', 'throughput', '')
-                    if fig_throughput:
-                        st.plotly_chart(fig_throughput, use_container_width=True)
-        else:
-            st.warning("No benchmark data found for Qwen-7B models.")
-            st.info("Run `python scripts/download_model.py` and `python scripts/run_benchmarks.py` to generate Qwen-7B benchmarks.")
     
     # Display summary statistics
     st.header("📊 Summary Statistics")
