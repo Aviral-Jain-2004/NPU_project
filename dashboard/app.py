@@ -125,6 +125,9 @@ def main():
         'tinyllama-1.1b-fp32': {'name': 'TinyLlama 1.1B', 'params': '1.1B', 'size': '4.3GB', 'precision': 'FP32'},
         'tinyllama-1.1b-fp16': {'name': 'TinyLlama 1.1B', 'params': '1.1B', 'size': '4.3GB', 'precision': 'FP16'},
         'tinyllama-1.1b-int8': {'name': 'TinyLlama 1.1B', 'params': '1.1B', 'size': '4.3GB', 'precision': 'INT8'},
+        'phi-3-mini-fp32': {'name': 'Phi-3 Mini', 'params': '3.8B', 'size': '7.8GB', 'precision': 'FP32'},
+        'phi-3-mini-fp16': {'name': 'Phi-3 Mini', 'params': '3.8B', 'size': '7.8GB', 'precision': 'FP16'},
+        'phi-3-mini-int8': {'name': 'Phi-3 Mini', 'params': '3.8B', 'size': '7.8GB', 'precision': 'INT8'},
     }
     
     # Load data
@@ -136,7 +139,7 @@ def main():
         return
     
     # Create tabs for model selection
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["GPT-2 Small", "GPT-2 Medium", "Pythia 410M", "Pythia 800M", "TinyLlama 1.1B"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["GPT-2 Small", "GPT-2 Medium", "Pythia 410M", "Pythia 800M", "TinyLlama 1.1B", "Phi-3 Mini"])
     
     # GPT-2 Small tab
     with tab1:
@@ -581,6 +584,95 @@ def main():
         else:
             st.warning("No benchmark data found for TinyLlama 1.1B models.")
             st.info("Run `python scripts/download_model.py` and `python scripts/run_benchmarks.py` to generate TinyLlama 1.1B benchmarks.")
+    
+    # Phi-3 Mini tab
+    with tab6:
+        # Model Details Section
+        st.header("Model Details")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Name", "Phi-3 Mini")
+        
+        with col2:
+            st.metric("Parameters", "3.8B")
+        
+        with col3:
+            st.metric("Model Size", "7.8GB")
+        
+        st.info("**Precision Variants:** FP32, FP16, INT8")
+        
+        st.markdown("---")
+        
+        # Filter data for Phi-3 Mini models
+        df_phi3 = df[df['model'].str.contains('phi-3-mini', case=False, na=False)]
+        
+        if not df_phi3.empty:
+            # Hardware Comparisons by Precision
+            st.header("Hardware Comparisons by Precision")
+            
+            # Create tabs for each precision
+            tab_phi3_int8, tab_phi3_fp16, tab_phi3_fp32 = st.tabs(["INT8 Precision", "FP16 Precision", "FP32 Precision"])
+            
+            with tab_phi3_int8:
+                st.subheader("INT8 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_phi3, 'int8', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_phi3, 'int8', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_phi3, 'int8', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+            
+            with tab_phi3_fp16:
+                st.subheader("FP16 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_phi3, 'fp16', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_phi3, 'fp16', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_phi3, 'fp16', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+            
+            with tab_phi3_fp32:
+                st.subheader("FP32 Precision Comparisons")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    fig_latency = create_comparison_chart(df_phi3, 'fp32', 'latency', '')
+                    if fig_latency:
+                        st.plotly_chart(fig_latency, use_container_width=True)
+                
+                with col2:
+                    fig_token = create_comparison_chart(df_phi3, 'fp32', 'token_generation', '')
+                    if fig_token:
+                        st.plotly_chart(fig_token, use_container_width=True)
+                
+                with col3:
+                    fig_throughput = create_comparison_chart(df_phi3, 'fp32', 'throughput', '')
+                    if fig_throughput:
+                        st.plotly_chart(fig_throughput, use_container_width=True)
+        else:
+            st.warning("No benchmark data found for Phi-3 Mini models.")
+            st.info("Run `python scripts/download_model.py` and `python scripts/run_benchmarks.py` to generate Phi-3 Mini benchmarks.")
     
     # Display summary statistics
     st.header("📊 Summary Statistics")

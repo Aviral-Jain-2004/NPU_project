@@ -24,6 +24,7 @@ MODEL_CONFIGS = {
     'pythia-410m': {'name': 'EleutherAI/pythia-410m', 'params': '410M', 'size': '1.6GB'},
     'pythia-800m': {'name': 'EleutherAI/pythia-800m', 'params': '800M', 'size': '3.1GB'},
     'tinyllama-1.1b': {'name': 'TinyLlama/TinyLlama-1.1B-Chat-v1.0', 'params': '1.1B', 'size': '4.3GB'},
+    'phi-3-mini': {'name': 'microsoft/Phi-3-mini-4k-instruct', 'params': '3.8B', 'size': '7.8GB'},
 }
 
 # Default model to download

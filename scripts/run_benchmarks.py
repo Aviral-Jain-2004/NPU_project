@@ -50,6 +50,9 @@ def main():
         ("tinyllama-1.1b-fp32", "fp32"),
         ("tinyllama-1.1b-fp16", "fp16"),
         ("tinyllama-1.1b-int8", "int8"),
+        ("phi-3-mini-fp32", "fp32"),
+        ("phi-3-mini-fp16", "fp16"),
+        ("phi-3-mini-int8", "int8"),
     ]
     
     # Hardware to test
