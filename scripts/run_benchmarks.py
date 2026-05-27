@@ -53,9 +53,9 @@ def main():
         ("phi-3-mini-fp32", "fp32"),
         ("phi-3-mini-fp16", "fp16"),
         ("phi-3-mini-int8", "int8"),
-        ("llama-2-7b-fp32", "fp32"),
-        ("llama-2-7b-fp16", "fp16"),
-        ("llama-2-7b-int8", "int8"),
+        ("qwen-7b-fp32", "fp32"),
+        ("qwen-7b-fp16", "fp16"),
+        ("qwen-7b-int8", "int8"),
     ]
     
     # Hardware to test
