@@ -42,8 +42,8 @@ def download_model(model_key):
     model_name = model_config['name']
     logger.info(f"Downloading {model_name}...")
     
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True)
     
     # Save tokenizer
     tokenizer_path = OUTPUT_DIR / f"{model_key}-tokenizer"
