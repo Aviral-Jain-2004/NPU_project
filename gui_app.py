@@ -127,7 +127,9 @@ class App:
             psutil.cpu_percent(interval=None)  # prime CPU measurement
             npu_thread.start()
 
-            inputs = _tokenizer(prompt_text, return_tensors="pt").to(_gpu_device)
+            messages = [{"role": "user", "content": prompt_text}]
+            formatted_prompt = _tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            inputs = _tokenizer(formatted_prompt, return_tensors="pt").to(_gpu_device)
             input_len = inputs["input_ids"].shape[1]
 
             start = time.time()
