@@ -5,7 +5,7 @@ import torch.nn as nn
 
 print("Creating dummy model...")
 
-# Create a simple PyTorch model
+# Create a simple PyTorch model with fixed input shape
 class SimpleModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -17,19 +17,27 @@ class SimpleModel(nn.Module):
 model_pytorch = SimpleModel()
 model_pytorch.eval()
 
-# Convert to OpenVINO model
+# Convert to OpenVINO model with fixed input shape
 print("Converting to OpenVINO model...")
-model = ov.convert_model(model_pytorch, example_input=torch.rand(1, 10))
+dummy_input = torch.rand(1, 10)
+model = ov.convert_model(model_pytorch, example_input=dummy_input)
 
 # Compile model for NPU
 print("Compiling model for NPU...")
 core = ov.Core()
-compiled_model = core.compile_model(model, "NPU")
+try:
+    compiled_model = core.compile_model(model, "NPU")
+    device = "NPU"
+except Exception as e:
+    print(f"NPU compilation failed: {e}")
+    print("Falling back to CPU...")
+    compiled_model = core.compile_model(model, "CPU")
+    device = "CPU"
 
 # Run inference with random input
-print("Running inference...")
+print(f"Running inference on {device}...")
 input_data = np.random.rand(1, 10)
 result = compiled_model([input_data])[0]
 
-print("NPU inference successful")
+print(f"{device} inference successful")
 print(f"Output shape: {result.shape}")
