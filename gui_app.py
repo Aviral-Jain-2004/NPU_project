@@ -45,6 +45,7 @@ def load_gpu_model():
             dtype=torch.float16,
             trust_remote_code=True,
             attn_implementation='eager',
+            use_cache=False,  # Disable DynamicCache for compatibility
         )
         _gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
         _gpu_model.to(_gpu_device)
