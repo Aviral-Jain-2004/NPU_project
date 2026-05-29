@@ -3,19 +3,17 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import time
 import psutil
 import threading
-import numpy
 
-def simulate_npu_task():
-    """Simulate NPU workload with dummy computation."""
-    start_time = time.time()
-    duration = 2.0  # Run for ~2 seconds
+def run_auxiliary_model():
+    """Run auxiliary model inference in parallel."""
+    prompt = "Hello, how are you?"
+    inputs = aux_tokenizer(prompt, return_tensors="pt")
+    inputs = {k: v.to("cpu") for k, v in inputs.items()}
     
-    while time.time() - start_time < duration:
-        # Dummy computation: small matrix multiplication
-        matrix_a = numpy.random.rand(100, 100)
-        matrix_b = numpy.random.rand(100, 100)
-        result = numpy.dot(matrix_a, matrix_b)
-        time.sleep(0.01)  # Simulate hardware execution
+    with torch.no_grad():
+        outputs = aux_model.generate(**inputs, max_new_tokens=20)
+    
+    print("Auxiliary model completed")
 
 model_name = "microsoft/Phi-3-mini-4k-instruct"
 
@@ -32,6 +30,14 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
 print(f"Using device: {device}")
 
+# Load auxiliary model (gpt2-medium) on CPU
+aux_model_name = "gpt2-medium"
+print(f"Loading auxiliary model from {aux_model_name}...")
+aux_tokenizer = AutoTokenizer.from_pretrained(aux_model_name)
+aux_model = AutoModelForCausalLM.from_pretrained(aux_model_name)
+aux_model = aux_model.to("cpu")
+print("Loaded auxiliary model (gpt2-medium) on CPU")
+
 prompt = "Explain heterogeneous computing in simple terms."
 
 inputs = tokenizer(prompt, return_tensors="pt")
@@ -39,10 +45,10 @@ inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
 cpu_before = psutil.cpu_percent(interval=None)
 
-# Start NPU workload in parallel
-npu_thread = threading.Thread(target=simulate_npu_task)
-npu_thread.start()
-print("NPU workload running in parallel...")
+# Start auxiliary model in parallel
+aux_thread = threading.Thread(target=run_auxiliary_model)
+aux_thread.start()
+print("Auxiliary model running in parallel...")
 
 print("Running inference...")
 start_time = time.time()
@@ -55,9 +61,9 @@ with torch.no_grad():
     )
 end_time = time.time()
 
-# Wait for NPU task to complete
-npu_thread.join()
-print("NPU workload completed")
+# Wait for auxiliary model to complete
+aux_thread.join()
+print("Auxiliary model completed")
 
 latency = end_time - start_time
 cpu_after = psutil.cpu_percent(interval=None)
