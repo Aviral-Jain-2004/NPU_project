@@ -29,10 +29,11 @@ def load_gpu_model():
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    _tokenizer = AutoTokenizer.from_pretrained(GPU_MODEL_NAME)
+    _tokenizer = AutoTokenizer.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
     _gpu_model = AutoModelForCausalLM.from_pretrained(
         GPU_MODEL_NAME,
         torch_dtype=torch.float16,
+        trust_remote_code=True,
     )
     _gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
     _gpu_model.to(_gpu_device)
