@@ -132,7 +132,15 @@ class App:
 
             start = time.time()
             with torch.no_grad():
-                outputs = _gpu_model.generate(**inputs, max_new_tokens=50, use_cache=False)
+                outputs = _gpu_model.generate(
+                    **inputs,
+                    max_new_tokens=50,
+                    do_sample=True,
+                    temperature=0.7,
+                    top_p=0.9,
+                    repetition_penalty=1.1,
+                    use_cache=False
+                )
             latency = time.time() - start
             cpu_usage = psutil.cpu_percent(interval=None)
 
