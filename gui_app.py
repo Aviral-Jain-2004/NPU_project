@@ -31,6 +31,7 @@ def load_gpu_model():
 
     try:
         _tokenizer = AutoTokenizer.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
+        _tokenizer.pad_token = _tokenizer.eos_token
         # Load config first and fix rope_scaling before loading model
         from transformers import AutoConfig
         config = AutoConfig.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
@@ -128,19 +129,23 @@ class App:
             npu_thread.start()
 
             messages = [{"role": "user", "content": prompt_text}]
-            formatted_prompt = _tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-            inputs = _tokenizer(formatted_prompt, return_tensors="pt").to(_gpu_device)
-            input_len = inputs["input_ids"].shape[1]
+            inputs = _tokenizer.apply_chat_template(
+                messages,
+                return_tensors="pt",
+                add_generation_prompt=True
+            ).to(_gpu_device)
 
             start = time.time()
             with torch.no_grad():
                 outputs = _gpu_model.generate(
-                    **inputs,
-                    max_new_tokens=50,
+                    inputs,
+                    max_new_tokens=80,
                     do_sample=True,
                     temperature=0.7,
                     top_p=0.9,
                     repetition_penalty=1.1,
+                    pad_token_id=_tokenizer.eos_token_id,
+                    eos_token_id=_tokenizer.eos_token_id,
                     use_cache=False
                 )
             latency = time.time() - start
@@ -148,9 +153,8 @@ class App:
 
             npu_thread.join()
 
-            output_ids = outputs[0][input_len:]
-            text = _tokenizer.decode(output_ids, skip_special_tokens=True)
-            tokens_generated = int(output_ids.shape[0])
+            text = _tokenizer.decode(outputs[0][inputs.shape[-1]:], skip_special_tokens=True).strip()
+            tokens_generated = int(outputs[0][inputs.shape[-1]:].shape[0])
             tps = tokens_generated / latency if latency > 0 else 0.0
 
             metrics = {
