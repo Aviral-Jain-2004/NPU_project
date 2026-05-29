@@ -11,9 +11,7 @@ def run_auxiliary_model():
     inputs = {k: v.to("cpu") for k, v in inputs.items()}
     
     with torch.no_grad():
-        outputs = aux_model.generate(**inputs, max_new_tokens=20)
-    
-    print("Auxiliary model completed")
+        outputs = aux_model.generate(**inputs, max_new_tokens=10)
 
 model_name = "microsoft/Phi-3-mini-4k-instruct"
 
@@ -30,13 +28,13 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
 print(f"Using device: {device}")
 
-# Load auxiliary model (gpt2-medium) on CPU
-aux_model_name = "gpt2-medium"
+# Load auxiliary model (gpt2) on CPU
+aux_model_name = "gpt2"
 print(f"Loading auxiliary model from {aux_model_name}...")
 aux_tokenizer = AutoTokenizer.from_pretrained(aux_model_name)
 aux_model = AutoModelForCausalLM.from_pretrained(aux_model_name)
 aux_model = aux_model.to("cpu")
-print("Loaded auxiliary model (gpt2-medium) on CPU")
+print("Loaded auxiliary model (gpt2) on CPU")
 
 prompt = "Explain heterogeneous computing in simple terms."
 
