@@ -4,6 +4,7 @@ onnxruntime==1.18.0
 onnxruntime-gpu==1.18.0
 onnxruntime-directml==1.18.0
 onnxconverter-common==1.14.0
+onnxscript
 
 # Model handling
 transformers==4.38.0
