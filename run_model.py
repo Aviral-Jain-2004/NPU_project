@@ -2,7 +2,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import time
 
-model_name = "microsoft/phi-3-mini-4k-instruct"
+model_name = "microsoft/Phi-3-mini-4k-instruct"
 
 print(f"Loading tokenizer from {model_name}...")
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
