@@ -151,7 +151,10 @@ class App:
         self.run_button.config(state="normal")
 
     def show_error(self, message):
-        self.set_output(f"Error: {message}")
+        import traceback
+        full_error = f"Error: {message}\n\n{traceback.format_exc()}"
+        self.set_output(full_error)
+        print(full_error)  # Also print to terminal
         self.run_button.config(state="normal")
 
 
