@@ -11,9 +11,11 @@ print(f"Loading model from {model_name}...")
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     trust_remote_code=True,
-    torch_dtype=torch.float16,
-    device_map="auto"
+    torch_dtype=torch.float16
 )
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = model.to(device)
+print(f"Using device: {device}")
 
 prompt = "Explain heterogeneous computing in simple terms."
 
