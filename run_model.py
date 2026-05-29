@@ -3,15 +3,14 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import time
 import psutil
 import threading
+import openvino as ov
+import numpy as np
 
-def run_auxiliary_model():
-    """Run auxiliary model inference in parallel."""
-    prompt = "Hello, how are you?"
-    inputs = aux_tokenizer(prompt, return_tensors="pt")
-    inputs = {k: v.to("cpu") for k, v in inputs.items()}
-    
-    with torch.no_grad():
-        outputs = aux_model.generate(**inputs, max_new_tokens=10)
+def run_npu_model():
+    """Run NPU model inference in parallel."""
+    input_data = np.random.randint(0, 50257, (1, 10))  # GPT-2 vocab size
+    compiled_model([input_data])
+    print("NPU model completed")
 
 model_name = "microsoft/Phi-3-mini-4k-instruct"
 
@@ -28,13 +27,12 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
 print(f"Using device: {device}")
 
-# Load auxiliary model (gpt2) on CPU
-aux_model_name = "gpt2"
-print(f"Loading auxiliary model from {aux_model_name}...")
-aux_tokenizer = AutoTokenizer.from_pretrained(aux_model_name)
-aux_model = AutoModelForCausalLM.from_pretrained(aux_model_name)
-aux_model = aux_model.to("cpu")
-print("Loaded auxiliary model (gpt2) on CPU")
+# Load ONNX model for NPU
+print("Loading ONNX model for NPU...")
+core = ov.Core()
+onnx_model = core.read_model("gpt2_static.onnx")
+compiled_model = core.compile_model(onnx_model, "NPU")
+print("Loaded and compiled ONNX model for NPU")
 
 prompt = "Explain heterogeneous computing in simple terms."
 
@@ -43,10 +41,10 @@ inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
 cpu_before = psutil.cpu_percent(interval=None)
 
-# Start auxiliary model in parallel
-aux_thread = threading.Thread(target=run_auxiliary_model)
-aux_thread.start()
-print("Auxiliary model running in parallel...")
+# Start NPU model in parallel
+npu_thread = threading.Thread(target=run_npu_model)
+npu_thread.start()
+print("NPU workload running in parallel...")
 
 print("Running inference...")
 start_time = time.time()
@@ -59,9 +57,8 @@ with torch.no_grad():
     )
 end_time = time.time()
 
-# Wait for auxiliary model to complete
-aux_thread.join()
-print("Auxiliary model completed")
+# Wait for NPU model to complete
+npu_thread.join()
 
 latency = end_time - start_time
 cpu_after = psutil.cpu_percent(interval=None)
