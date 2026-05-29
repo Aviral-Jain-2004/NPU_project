@@ -1,16 +1,25 @@
 import openvino as ov
 import numpy as np
+import torch
+import torch.nn as nn
 
 print("Creating dummy model...")
 
-# Create a simple function that multiplies input by random weights
-def simple_model(input_data):
-    weights = np.random.rand(10, 10)
-    return np.dot(input_data, weights)
+# Create a simple PyTorch model
+class SimpleModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(10, 10)
+    
+    def forward(self, x):
+        return self.linear(x)
+
+model_pytorch = SimpleModel()
+model_pytorch.eval()
 
 # Convert to OpenVINO model
 print("Converting to OpenVINO model...")
-model = ov.convert_model(simple_model, example_input=np.random.rand(1, 10))
+model = ov.convert_model(model_pytorch, example_input=torch.rand(1, 10))
 
 # Compile model for NPU
 print("Compiling model for NPU...")
