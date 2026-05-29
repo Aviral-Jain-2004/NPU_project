@@ -45,7 +45,6 @@ def load_gpu_model():
             dtype=torch.float16,
             trust_remote_code=True,
             attn_implementation='eager',
-            use_cache=False,  # Disable DynamicCache for compatibility
         )
         _gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
         _gpu_model.to(_gpu_device)
@@ -133,7 +132,7 @@ class App:
 
             start = time.time()
             with torch.no_grad():
-                outputs = _gpu_model.generate(**inputs, max_new_tokens=50)
+                outputs = _gpu_model.generate(**inputs, max_new_tokens=50, use_cache=False)
             latency = time.time() - start
             cpu_usage = psutil.cpu_percent(interval=None)
 
