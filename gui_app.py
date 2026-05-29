@@ -31,14 +31,21 @@ def load_gpu_model():
 
     try:
         _tokenizer = AutoTokenizer.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
+        # Load config first and fix rope_scaling before loading model
+        from transformers import AutoConfig
+        config = AutoConfig.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
+        # Fix rope_scaling compatibility issue with newer transformers
+        if hasattr(config, 'rope_scaling') and config.rope_scaling is not None:
+            if 'type' not in config.rope_scaling:
+                config.rope_scaling = None
+        
         _gpu_model = AutoModelForCausalLM.from_pretrained(
             GPU_MODEL_NAME,
+            config=config,
             dtype=torch.float16,
             trust_remote_code=True,
             attn_implementation='eager',
         )
-        # Fix rope_scaling compatibility issue with newer transformers
-        _gpu_model.config.rope_scaling = None
         _gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
         _gpu_model.to(_gpu_device)
         _gpu_model.eval()
