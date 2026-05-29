@@ -15,6 +15,8 @@ NPU_project/
 │   └── run_benchmarks.py      # Main orchestration script
 ├── dashboard/
 │   └── app.py                 # Streamlit dashboard
+├── check_gpu.py               # GPU verification script
+├── run_model.py               # Standalone model inference script
 ├── requirements.txt
 └── README.md
 ```
@@ -31,6 +33,11 @@ pip install -r requirements.txt
 - CPU only: `pip install onnxruntime`
 - GPU (CUDA): `pip install onnxruntime-gpu`
 - NPU (DirectML): `pip install onnxruntime-directml`
+
+**GPU Support:** For GPU acceleration with CUDA 12.8 support, install PyTorch with CUDA:
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu128
+```
 
 ### 2. Download Models
 
