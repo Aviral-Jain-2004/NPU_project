@@ -37,6 +37,8 @@ def load_gpu_model():
             trust_remote_code=True,
             attn_implementation='eager',
         )
+        # Fix rope_scaling compatibility issue with newer transformers
+        _gpu_model.config.rope_scaling = None
         _gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
         _gpu_model.to(_gpu_device)
         _gpu_model.eval()
