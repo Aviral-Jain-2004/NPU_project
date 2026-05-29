@@ -2,6 +2,20 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import time
 import psutil
+import threading
+import numpy
+
+def simulate_npu_task():
+    """Simulate NPU workload with dummy computation."""
+    start_time = time.time()
+    duration = 2.0  # Run for ~2 seconds
+    
+    while time.time() - start_time < duration:
+        # Dummy computation: small matrix multiplication
+        matrix_a = numpy.random.rand(100, 100)
+        matrix_b = numpy.random.rand(100, 100)
+        result = numpy.dot(matrix_a, matrix_b)
+        time.sleep(0.01)  # Simulate hardware execution
 
 model_name = "microsoft/Phi-3-mini-4k-instruct"
 
@@ -24,6 +38,12 @@ inputs = tokenizer(prompt, return_tensors="pt")
 inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
 cpu_before = psutil.cpu_percent(interval=None)
+
+# Start NPU workload in parallel
+npu_thread = threading.Thread(target=simulate_npu_task)
+npu_thread.start()
+print("NPU workload running in parallel...")
+
 print("Running inference...")
 start_time = time.time()
 with torch.no_grad():
@@ -34,6 +54,10 @@ with torch.no_grad():
         temperature=0.7
     )
 end_time = time.time()
+
+# Wait for NPU task to complete
+npu_thread.join()
+print("NPU workload completed")
 
 latency = end_time - start_time
 cpu_after = psutil.cpu_percent(interval=None)
