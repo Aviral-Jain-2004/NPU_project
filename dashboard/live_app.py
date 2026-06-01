@@ -12,6 +12,9 @@ from pathlib import Path
 import numpy as np
 import psutil
 import streamlit as st
+import torch
+import openvino as ov
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -20,25 +23,14 @@ GPU_MODEL_NAME = "microsoft/Phi-3-mini-4k-instruct"
 ONNX_PATH = str(Path(__file__).resolve().parent.parent / "gpt2_static.onnx")
 
 # ---------------------------------------------------------------------------
-# Global model handles (lazy-loaded once per process)
+# Cached model loaders (loaded once per Streamlit process)
 # ---------------------------------------------------------------------------
-_tokenizer = None
-_gpu_model = None
-_gpu_device = None
-_compiled_npu = None
-_npu_device = None
 
-
+@st.cache_resource
 def load_gpu_model():
     """Load Phi-3 with float16 and move to CUDA."""
-    global _tokenizer, _gpu_model, _gpu_device
-    if _gpu_model is not None:
-        return
-    import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
-
-    _tokenizer = AutoTokenizer.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
-    _tokenizer.pad_token = _tokenizer.eos_token
+    tokenizer = AutoTokenizer.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
+    tokenizer.pad_token = tokenizer.eos_token
 
     # Fix rope_scaling compatibility issue with newer transformers
     config = AutoConfig.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
@@ -46,75 +38,71 @@ def load_gpu_model():
         if "type" not in config.rope_scaling:
             config.rope_scaling = None
 
-    _gpu_model = AutoModelForCausalLM.from_pretrained(
+    gpu_model = AutoModelForCausalLM.from_pretrained(
         GPU_MODEL_NAME,
         config=config,
         torch_dtype=torch.float16,
         trust_remote_code=True,
         attn_implementation="eager",
     )
-    _gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
-    _gpu_model.to(_gpu_device)
-    _gpu_model.eval()
+    gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
+    gpu_model.to(gpu_device)
+    gpu_model.eval()
+    return tokenizer, gpu_model, gpu_device
 
 
+@st.cache_resource
 def load_npu_model():
     """Compile the static GPT-2 ONNX model for the NPU (CPU fallback)."""
-    global _compiled_npu, _npu_device
-    if _compiled_npu is not None:
-        return
-    import openvino as ov
-
     core = ov.Core()
     model = core.read_model(ONNX_PATH)
     try:
-        _compiled_npu = core.compile_model(model, "NPU")
-        _npu_device = "NPU"
+        compiled_npu = core.compile_model(model, "NPU")
+        npu_device = "NPU"
     except Exception:
-        _compiled_npu = core.compile_model(model, "CPU")
-        _npu_device = "CPU"
+        compiled_npu = core.compile_model(model, "CPU")
+        npu_device = "CPU"
+    return compiled_npu, npu_device
 
 
-def run_npu(result_holder: dict):
+def run_npu(compiled_npu, result_holder: dict):
     """Run a dummy NPU inference with input shape [1, 10]."""
     input_data = np.random.randint(0, 50257, (1, 10))
-    output = _compiled_npu([input_data])[0]
+    output = compiled_npu([input_data])[0]
     result_holder["shape"] = output.shape
 
 
 def run_inference(prompt_text: str) -> dict:
     """Run hybrid GPU + NPU inference and return results with metrics."""
-    import torch
-
-    load_gpu_model()
-    load_npu_model()
+    tokenizer, gpu_model, gpu_device = load_gpu_model()
+    compiled_npu, npu_device = load_npu_model()
 
     # --- Start NPU thread ---
     npu_result = {}
-    npu_thread = threading.Thread(target=run_npu, args=(npu_result,))
+    npu_thread = threading.Thread(target=run_npu, args=(compiled_npu, npu_result))
 
     psutil.cpu_percent(interval=None)  # prime CPU measurement
     npu_thread.start()
 
     # --- GPU inference ---
     messages = [{"role": "user", "content": prompt_text}]
-    inputs = _tokenizer.apply_chat_template(
+    inputs = tokenizer.apply_chat_template(
         messages,
         return_tensors="pt",
         add_generation_prompt=True,
-    ).to(_gpu_device)
+    ).to(gpu_device)
 
     start = time.time()
     with torch.no_grad():
-        outputs = _gpu_model.generate(
+        outputs = gpu_model.generate(
             inputs,
             max_new_tokens=60,
             do_sample=True,
             temperature=0.7,
             top_p=0.9,
             repetition_penalty=1.1,
-            pad_token_id=_tokenizer.eos_token_id,
-            eos_token_id=_tokenizer.eos_token_id,
+            pad_token_id=tokenizer.eos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
             use_cache=False,
         )
     latency = time.time() - start
@@ -125,7 +113,7 @@ def run_inference(prompt_text: str) -> dict:
 
     # --- Decode only generated tokens ---
     generated_ids = outputs[0][inputs.shape[-1]:]
-    text = _tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+    text = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
     tokens_generated = int(generated_ids.shape[0])
     tps = tokens_generated / latency if latency > 0 else 0.0
 
@@ -145,7 +133,7 @@ def run_inference(prompt_text: str) -> dict:
         "cpu": cpu_usage,
         "gpu_mem": gpu_mem,
         "gpu_max": gpu_max,
-        "status": f"GPU: {_gpu_device} | NPU: {_npu_device} (out {npu_result.get('shape')})",
+        "status": f"GPU: {gpu_device} | NPU: {npu_device} (out {npu_result.get('shape')})",
     }
 
 
