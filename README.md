@@ -27,9 +27,19 @@ NPU_project/
 
 **IMPORTANT: Install GPU-enabled PyTorch first, then install remaining dependencies.**
 
+For most GPUs (CUDA 12.1 compatible):
 ```bash
 # Step 1: Install GPU-enabled PyTorch (CUDA 12.1 - compatible with CUDA 12.8)
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Step 2: Install remaining dependencies
+pip install -r requirements.txt
+```
+
+For Blackwell GPUs (sm_120, requires CUDA 12.8+):
+```bash
+# Step 1: Install PyTorch nightly with CUDA 12.8+ support (cu128 or cu129)
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 
 # Step 2: Install remaining dependencies
 pip install -r requirements.txt
@@ -45,10 +55,7 @@ pip install -r requirements.txt
 nvidia-smi
 ```
 
-**Blackwell GPU Note:** If you have a Blackwell architecture GPU (e.g., NVIDIA RTX PRO 2000 Blackwell), current PyTorch versions (including nightly) do not yet support CUDA capability sm_120. You may need to:
-- Use CPU-only PyTorch (`pip install torch torchvision torchaudio` without CUDA)
-- Wait for PyTorch to add Blackwell support
-- Check NVIDIA's PyTorch containers for experimental builds
+**Blackwell GPU Note:** If you have a Blackwell architecture GPU (e.g., NVIDIA RTX PRO 2000 Blackwell), use the cu128 nightly installation above. Standard PyTorch builds (including cu121) do not support CUDA capability sm_120.
 
 ### 2. Download Models
 
