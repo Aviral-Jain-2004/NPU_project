@@ -34,7 +34,9 @@ onnx_model = core.read_model("gpt2_static.onnx")
 compiled_model = core.compile_model(onnx_model, "NPU")
 print("Loaded and compiled ONNX model for NPU")
 
-prompt = "Explain heterogeneous computing in simple terms."
+prompt = input("Enter your question: ").strip()
+if not prompt:
+    prompt = "Explain heterogeneous computing in simple terms."
 
 inputs = tokenizer(prompt, return_tensors="pt")
 inputs = {k: v.to(model.device) for k, v in inputs.items()}
