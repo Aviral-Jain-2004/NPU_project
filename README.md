@@ -25,11 +25,11 @@ NPU_project/
 
 ### 1. Install Dependencies
 
-**IMPORTANT: Install GPU-enabled PyTorch first, then install remaining dependencies.**
+**IMPORTANT: Install PyTorch nightly first for latest GPU support (including Blackwell architecture), then install remaining dependencies.**
 
 ```bash
-# Step 1: Install GPU-enabled PyTorch (CUDA 12.1 - compatible with CUDA 12.8)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Step 1: Install PyTorch nightly with CUDA support (compatible with latest GPUs)
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
 
 # Step 2: Install remaining dependencies
 pip install -r requirements.txt
@@ -40,7 +40,7 @@ pip install -r requirements.txt
 - GPU (CUDA): `pip install onnxruntime-gpu`
 - NPU (DirectML): `pip install onnxruntime-directml`
 
-**GPU Support:** The Step 1 command above installs PyTorch with CUDA support. If you encounter issues, verify CUDA is installed:
+**GPU Support:** The Step 1 command above installs PyTorch nightly with CUDA support, which includes support for latest GPU architectures (including Blackwell). If you encounter issues, verify CUDA is installed:
 ```bash
 nvidia-smi
 ```
