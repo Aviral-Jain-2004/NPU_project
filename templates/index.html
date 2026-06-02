@@ -20,8 +20,11 @@
         }
         h1 {
             color: #333;
+            text-align: center;
+            font-size: 28px;
             border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
         }
         label {
             display: block;
@@ -52,38 +55,54 @@
         }
         .result {
             margin-top: 30px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-            border-left: 4px solid #007bff;
+            padding: 25px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            border: 1px solid #ddd;
         }
         .result h2 {
             color: #333;
+            font-size: 20px;
             margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
         }
         .metrics {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             margin-top: 20px;
         }
         .metric {
             background-color: white;
-            padding: 10px 15px;
+            padding: 12px 15px;
             border-radius: 4px;
             border: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
         }
         .metric strong {
             color: #007bff;
         }
         .output {
             margin-top: 15px;
-            padding: 15px;
+            padding: 20px;
             background-color: white;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 6px;
             white-space: pre-wrap;
             line-height: 1.6;
+            font-size: 15px;
+        }
+        .section-title {
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #007bff;
         }
         .error {
             color: #dc3545;
@@ -111,27 +130,29 @@
             <h2>Generated Output</h2>
             <div class="output">{{ output }}</div>
             
+            <div class="section-title">Performance Metrics</div>
+            
             <div class="metrics">
                 <div class="metric">
-                    <strong>Latency:</strong> {{ latency }} s
+                    <strong>Latency:</strong> <span>{{ latency }} s</span>
                 </div>
                 <div class="metric">
-                    <strong>Tokens/sec:</strong> {{ tokens_per_sec }}
+                    <strong>Tokens/sec:</strong> <span>{{ tokens_per_sec }}</span>
                 </div>
                 <div class="metric">
-                    <strong>Tokens:</strong> {{ tokens_generated }}
+                    <strong>Tokens:</strong> <span>{{ tokens_generated }}</span>
                 </div>
                 <div class="metric">
-                    <strong>CPU:</strong> {{ cpu_usage }} %
+                    <strong>CPU Usage:</strong> <span>{{ cpu_usage }} %</span>
                 </div>
                 <div class="metric">
-                    <strong>GPU Mem:</strong> {{ gpu_memory }} MB
+                    <strong>GPU Memory:</strong> <span>{{ gpu_memory }} MB</span>
                 </div>
                 <div class="metric">
-                    <strong>NPU Time:</strong> {{ npu_time }} s
+                    <strong>NPU Time:</strong> <span>{{ npu_time }} s</span>
                 </div>
                 <div class="metric">
-                    <strong>Mode:</strong> {{ mode }}
+                    <strong>Mode:</strong> <span>{{ mode }}</span>
                 </div>
             </div>
         </div>
