@@ -153,9 +153,8 @@ def run_inference(prompt: str) -> dict:
         add_generation_prompt=True,
     )
     
-    # Move inputs to device (only needed for GPU mode)
-    if MODE == "gpu":
-        inputs = inputs.to(gpu_device)
+    # Move inputs to CUDA device
+    inputs = {k: v.to("cuda") for k, v in inputs.items()}
 
     start = time.time()
     with torch.no_grad():
