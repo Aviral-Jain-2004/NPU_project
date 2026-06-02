@@ -44,14 +44,15 @@ print(f"Loading model from {GPU_MODEL_NAME}...")
 gpu_model = AutoModelForCausalLM.from_pretrained(
     GPU_MODEL_NAME,
     config=config,
+    device_map="auto",
     torch_dtype=torch.float16,
     trust_remote_code=True,
     attn_implementation="eager",
 )
-gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
-gpu_model.to(gpu_device)
+print(f"Model device map: {gpu_model.hf_device_map}")
 gpu_model.eval()
-print(f"GPU model loaded on: {gpu_device}")
+gpu_device = "auto (device_map)"
+print(f"GPU model loaded with device_map='auto'")
 
 # ---------------------------------------------------------------------------
 # Load NPU model ONCE at startup
@@ -122,7 +123,7 @@ def run_inference(prompt: str) -> dict:
         messages,
         return_tensors="pt",
         add_generation_prompt=True,
-    ).to(gpu_device)
+    )
 
     start = time.time()
     with torch.no_grad():
