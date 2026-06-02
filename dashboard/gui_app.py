@@ -11,7 +11,7 @@ from tkinter import messagebox
 
 import requests
 
-BACKEND_URL = "http://localhost:5000/infer"
+BACKEND_URL = "http://127.0.0.1:5000/infer"
 
 
 class App:
@@ -59,9 +59,25 @@ class App:
         self.root.update_idletasks()
 
         try:
-            response = requests.post(BACKEND_URL, json={"prompt": prompt}, timeout=120)
-            response.raise_for_status()
+            print("Sending request to backend...")
+            response = requests.post(
+                BACKEND_URL,
+                json={"prompt": prompt},
+                timeout=120
+            )
+            print(f"Response status: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"Backend returned status {response.status_code}: {response.text}"
+                print(error_msg)
+                self.output_text.config(state="normal")
+                self.output_text.delete("1.0", "end")
+                self.output_text.insert("1.0", error_msg)
+                self.output_text.config(state="disabled")
+                return
+            
             data = response.json()
+            print("Received response successfully")
 
             # Update output
             self.output_text.config(state="normal")
@@ -73,15 +89,20 @@ class App:
             self.latency_var.set(f"{data.get('latency', 0):.4f} s")
             self.tps_var.set(f"{data.get('tokens_per_sec', 0):.2f}")
 
-        except requests.ConnectionError:
-            messagebox.showerror(
-                "Connection Error",
-                "Cannot connect to backend.\n\n"
-                "Make sure backend_server.py is running:\n"
-                "  python backend_server.py"
-            )
+        except requests.ConnectionError as e:
+            error_msg = f"Connection Error: {e}\n\nMake sure backend_server.py is running on http://127.0.0.1:5000"
+            print(error_msg)
+            self.output_text.config(state="normal")
+            self.output_text.delete("1.0", "end")
+            self.output_text.insert("1.0", error_msg)
+            self.output_text.config(state="disabled")
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            error_msg = f"Error: {e}"
+            print(error_msg)
+            self.output_text.config(state="normal")
+            self.output_text.delete("1.0", "end")
+            self.output_text.insert("1.0", error_msg)
+            self.output_text.config(state="disabled")
         finally:
             self.run_btn.config(state="normal", text="Run Inference")
 
