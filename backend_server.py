@@ -186,7 +186,9 @@ def run_inference(prompt: str) -> dict:
 
     # --- NPU summarization of GPU output ---
     print("Running NPU summarization...")
+    npu_start = time.time()
     final_output = run_npu_summarize(gpu_output)
+    npu_time = time.time() - npu_start
 
     # --- GPU memory ---
     if torch.cuda.is_available():
@@ -204,6 +206,8 @@ def run_inference(prompt: str) -> dict:
         "cpu_usage": round(cpu_usage, 1),
         "gpu_memory_mb": round(gpu_mem, 2),
         "gpu_peak_memory_mb": round(gpu_max, 2),
+        "npu_time": round(npu_time, 4),
+        "mode": MODE,
         "devices": f"GPU: {gpu_device} | NPU: {npu_device} (out {npu_result.get('shape')})",
     }
 
@@ -225,6 +229,11 @@ def index():
                 output=result["output"],
                 latency=result["latency"],
                 tokens_per_sec=result["tokens_per_sec"],
+                tokens_generated=result["tokens_generated"],
+                cpu_usage=result["cpu_usage"],
+                gpu_memory=result["gpu_memory_mb"],
+                npu_time=result["npu_time"],
+                mode=result["mode"],
             )
         except Exception as e:
             return render_template("index.html", error=str(e))
