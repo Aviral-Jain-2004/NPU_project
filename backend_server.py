@@ -153,8 +153,11 @@ def run_inference(prompt: str) -> dict:
         add_generation_prompt=True,
     )
     
-    # Move inputs to CUDA device
-    inputs = {k: v.to("cuda") for k, v in inputs.items()}
+    # Move inputs to CUDA device (handle both dict and Tensor)
+    if isinstance(inputs, dict):
+        inputs = {k: v.to("cuda") for k, v in inputs.items()}
+    else:
+        inputs = inputs.to("cuda")
 
     start = time.time()
     with torch.no_grad():
