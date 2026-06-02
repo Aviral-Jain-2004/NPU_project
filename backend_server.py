@@ -112,19 +112,23 @@ def run_npu_summarize(text: str) -> str:
         # Tokenize using GPT-2 tokenizer
         inputs = npu_tokenizer(npu_text, return_tensors="np")
         
-        # Truncate input_ids to match expected shape (1, 10)
-        inputs["input_ids"] = inputs["input_ids"][:, :10]
+        # Extract input_ids
+        input_ids = inputs["input_ids"]
         
         # Ensure shape is exactly (1, 10)
-        input_shape = inputs["input_ids"].shape
-        assert input_shape == (1, 10), f"Unexpected shape: {input_shape}"
-        print("NPU input shape:", input_shape)
+        if input_ids.shape[1] > 10:
+            input_ids = input_ids[:, :10]
+        else:
+            pad_length = 10 - input_ids.shape[1]
+            input_ids = np.pad(input_ids, ((0, 0), (0, pad_length)), constant_values=0)
+        
+        print("Final NPU input shape:", input_ids.shape)
         
         # Run inference
-        outputs = compiled_npu([inputs["input_ids"]])[0]
+        outputs = compiled_npu([input_ids])[0]
         
         # Decode output
-        generated_ids = outputs[0][inputs["input_ids"].shape[1]:]
+        generated_ids = outputs[0][input_ids.shape[1]:]
         summary = npu_tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
         
         return summary if summary else text  # Fallback to original if empty
