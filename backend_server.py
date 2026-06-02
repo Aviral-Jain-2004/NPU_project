@@ -67,15 +67,41 @@ except Exception:
     npu_device = "CPU"
 print(f"NPU model compiled on: {npu_device}")
 
+# Load GPT-2 tokenizer for NPU
+print("Loading GPT-2 tokenizer for NPU...")
+from transformers import GPT2Tokenizer
+npu_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+npu_tokenizer.pad_token = npu_tokenizer.eos_token
+print("GPT-2 tokenizer loaded")
+
 
 # ---------------------------------------------------------------------------
-# NPU dummy inference (runs in a separate thread)
+# NPU inference functions
 # ---------------------------------------------------------------------------
-def run_npu(result_holder: dict):
-    """Run a dummy NPU inference with input shape [1, 10]."""
+def run_npu_dummy(result_holder: dict):
+    """Run a dummy NPU inference with input shape [1, 10] (for parallel execution)."""
     input_data = np.random.randint(0, 50257, (1, 10))
     output = compiled_npu([input_data])[0]
     result_holder["shape"] = str(output.shape)
+
+
+def run_npu_summarize(text: str) -> str:
+    """Run NPU to summarize the given text."""
+    try:
+        summary_prompt = "Summarize: " + text
+        inputs = npu_tokenizer(summary_prompt, return_tensors="np", padding=True, truncation=True, max_length=512)
+        
+        # Run inference
+        outputs = compiled_npu([inputs["input_ids"]])[0]
+        
+        # Decode output
+        generated_ids = outputs[0][inputs["input_ids"].shape[1]:]
+        summary = npu_tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+        
+        return summary if summary else text  # Fallback to original if empty
+    except Exception as e:
+        print(f"NPU summarization failed: {e}")
+        return text  # Fallback to original text
 
 
 # ---------------------------------------------------------------------------
@@ -83,9 +109,9 @@ def run_npu(result_holder: dict):
 # ---------------------------------------------------------------------------
 def run_inference(prompt: str) -> dict:
     """Run hybrid GPU + NPU inference and return results."""
-    # --- Start NPU thread ---
+    # --- Start NPU dummy thread (parallel execution) ---
     npu_result = {}
-    npu_thread = threading.Thread(target=run_npu, args=(npu_result,))
+    npu_thread = threading.Thread(target=run_npu_dummy, args=(npu_result,))
 
     psutil.cpu_percent(interval=None)  # prime CPU measurement
     npu_thread.start()
@@ -114,14 +140,18 @@ def run_inference(prompt: str) -> dict:
     latency = time.time() - start
     cpu_usage = psutil.cpu_percent(interval=None)
 
-    # --- Wait for NPU ---
+    # --- Wait for NPU dummy thread ---
     npu_thread.join()
 
-    # --- Decode only generated tokens ---
+    # --- Decode GPU output ---
     generated_ids = outputs[0][inputs.shape[-1]:]
-    generated_text = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+    gpu_output = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
     tokens_generated = int(generated_ids.shape[0])
     tokens_per_sec = tokens_generated / latency if latency > 0 else 0.0
+
+    # --- NPU summarization of GPU output ---
+    print("Running NPU summarization...")
+    final_output = run_npu_summarize(gpu_output)
 
     # --- GPU memory ---
     if torch.cuda.is_available():
@@ -132,7 +162,7 @@ def run_inference(prompt: str) -> dict:
         gpu_max = 0.0
 
     return {
-        "output": generated_text,
+        "output": final_output,
         "latency": round(latency, 4),
         "tokens_generated": tokens_generated,
         "tokens_per_sec": round(tokens_per_sec, 2),
