@@ -89,8 +89,18 @@ def run_npu_dummy(result_holder: dict):
 def run_npu_summarize(text: str) -> str:
     """Run NPU to summarize the given text."""
     try:
-        summary_prompt = "Summarize: " + text
-        inputs = npu_tokenizer(summary_prompt, return_tensors="np", padding=True, truncation=True, max_length=512)
+        # Truncate input to 50 characters before tokenizing
+        npu_text = text[:50]
+        
+        # Tokenize using GPT-2 tokenizer
+        inputs = npu_tokenizer(npu_text, return_tensors="np")
+        
+        # Truncate input_ids to match expected shape (1, 10)
+        inputs["input_ids"] = inputs["input_ids"][:, :10]
+        
+        # Ensure shape is exactly (1, 10)
+        assert inputs["input_ids"].shape == (1, 10), f"Unexpected shape: {inputs["input_ids"].shape}"
+        print("NPU input shape:", inputs["input_ids"].shape)
         
         # Run inference
         outputs = compiled_npu([inputs["input_ids"]])[0]
