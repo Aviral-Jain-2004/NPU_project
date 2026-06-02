@@ -19,6 +19,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
+MODE = "hybrid"  # Options: "gpu" or "hybrid"
 GPU_MODEL_NAME = "microsoft/Phi-3-mini-4k-instruct"
 ONNX_PATH = str(Path(__file__).resolve().parent / "gpt2_static.onnx")
 
@@ -30,6 +31,7 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 # Load GPU model ONCE at startup
 # ---------------------------------------------------------------------------
+print(f"Running mode: {MODE}")
 print(f"Loading tokenizer from {GPU_MODEL_NAME}...")
 tokenizer = AutoTokenizer.from_pretrained(GPU_MODEL_NAME, trust_remote_code=True)
 tokenizer.pad_token = tokenizer.eos_token
@@ -41,18 +43,33 @@ if hasattr(config, "rope_scaling") and config.rope_scaling is not None:
         config.rope_scaling = None
 
 print(f"Loading model from {GPU_MODEL_NAME}...")
-gpu_model = AutoModelForCausalLM.from_pretrained(
-    GPU_MODEL_NAME,
-    config=config,
-    device_map="auto",
-    torch_dtype=torch.float16,
-    trust_remote_code=True,
-    attn_implementation="eager",
-)
-print(f"Model device map: {gpu_model.hf_device_map}")
-gpu_model.eval()
-gpu_device = "auto (device_map)"
-print(f"GPU model loaded with device_map='auto'")
+if MODE == "gpu":
+    gpu_model = AutoModelForCausalLM.from_pretrained(
+        GPU_MODEL_NAME,
+        config=config,
+        torch_dtype=torch.float16,
+        trust_remote_code=True,
+        attn_implementation="eager",
+    )
+    gpu_device = "cuda" if torch.cuda.is_available() else "cpu"
+    gpu_model.to(gpu_device)
+    gpu_model.eval()
+    print(f"GPU model loaded on: {gpu_device}")
+elif MODE == "hybrid":
+    gpu_model = AutoModelForCausalLM.from_pretrained(
+        GPU_MODEL_NAME,
+        config=config,
+        device_map="auto",
+        torch_dtype=torch.float16,
+        trust_remote_code=True,
+        attn_implementation="eager",
+    )
+    print(f"Model device map: {gpu_model.hf_device_map}")
+    gpu_model.eval()
+    gpu_device = "auto (device_map)"
+    print(f"GPU model loaded with device_map='auto'")
+else:
+    raise ValueError(f"Invalid MODE: {MODE}. Must be 'gpu' or 'hybrid'")
 
 # ---------------------------------------------------------------------------
 # Load NPU model ONCE at startup
@@ -135,6 +152,10 @@ def run_inference(prompt: str) -> dict:
         return_tensors="pt",
         add_generation_prompt=True,
     )
+    
+    # Move inputs to device (only needed for GPU mode)
+    if MODE == "gpu":
+        inputs = inputs.to(gpu_device)
 
     start = time.time()
     with torch.no_grad():
