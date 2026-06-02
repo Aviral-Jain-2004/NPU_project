@@ -13,7 +13,7 @@ import numpy as np
 import psutil
 import torch
 import openvino as ov
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 
 # ---------------------------------------------------------------------------
@@ -146,6 +146,26 @@ def run_inference(prompt: str) -> dict:
 # ---------------------------------------------------------------------------
 # Flask endpoint
 # ---------------------------------------------------------------------------
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        prompt = request.form.get("prompt", "").strip()
+        if not prompt:
+            return render_template("index.html", error="No prompt provided")
+        try:
+            result = run_inference(prompt)
+            return render_template(
+                "index.html",
+                prompt=prompt,
+                output=result["output"],
+                latency=result["latency"],
+                tokens_per_sec=result["tokens_per_sec"],
+            )
+        except Exception as e:
+            return render_template("index.html", error=str(e))
+    return render_template("index.html")
+
+
 @app.route("/infer", methods=["POST"])
 def infer():
     data = request.json
