@@ -99,8 +99,9 @@ def run_npu_summarize(text: str) -> str:
         inputs["input_ids"] = inputs["input_ids"][:, :10]
         
         # Ensure shape is exactly (1, 10)
-        assert inputs["input_ids"].shape == (1, 10), f"Unexpected shape: {inputs["input_ids"].shape}"
-        print("NPU input shape:", inputs["input_ids"].shape)
+        input_shape = inputs["input_ids"].shape
+        assert input_shape == (1, 10), f"Unexpected shape: {input_shape}"
+        print("NPU input shape:", input_shape)
         
         # Run inference
         outputs = compiled_npu([inputs["input_ids"]])[0]
