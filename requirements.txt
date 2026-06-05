@@ -6,6 +6,7 @@ onnxruntime-directml==1.18.0
 onnxconverter-common>=1.14.0
 onnxscript
 protobuf>=4.25.1,<5
+openvino>=2024.0
 
 # Model handling
 transformers==4.38.0
